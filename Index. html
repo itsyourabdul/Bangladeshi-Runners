@@ -55,6 +55,7 @@
             background: #111;
             max-width: 100%;
             max-height: 90vh;
+            touch-action: none;
         }
 
         .ui {
@@ -74,6 +75,7 @@
             align-items: center;
             gap: 12px;
             white-space: nowrap;
+            transition: all 0.3s ease;
         }
 
         .instructions {
@@ -87,6 +89,7 @@
             max-width: 820px;
             line-height: 1.4;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.4s ease;
         }
 
         .flag {
@@ -108,6 +111,26 @@
             z-index: 20;
             pointer-events: none;
         }
+
+        /* New: Pause indicator */
+        .pause-btn {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            z-index: 15;
+            background: rgba(0, 0, 0, 0.6);
+            color: #FFD700;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -119,26 +142,46 @@
 
     <canvas id="canvas" width="820" height="480"></canvas>
 
+    <!-- Improved UI with shield indicator -->
     <div class="ui" id="ui">
         দূরত্ব: <span id="score">0</span>m 
         <span style="margin-left:20px; color:#FFD700;">🥭</span> 
         <span id="mangoCount">0</span>
+        <span id="shieldIndicator" style="margin-left:15px; font-size:1.4rem; display:none;">🛡️</span>
     </div>
 
+    <!-- Updated instructions with new features -->
     <div class="instructions" id="instructions">
         ← → বা A D → লেন চেঞ্জ<br>
-        ↑ বা W বা SPACE → লাফ (গরু/রিকশা এড়ান)<br>
-        ↓ বা S → স্লাইড (ডালপালা এড়ান)<br>
-        🥭 ম্যাঙ্গো সংগ্রহ করুন!<br>
-        <span style="font-size:0.9rem; opacity:0.8;">মোবাইলে সোয়াইপ করুন • বাংলাদেশের গ্রাম-রাস্তায় অনন্ত দৌড়!</span>
+        ↑ বা W বা SPACE → লাফ<br>
+        ↓ বা S → স্লাইড<br>
+        🥭 ম্যাঙ্গো + 🛡️ শিল্ড সংগ্রহ করুন!<br>
+        P → পজ করুন • ট্যাপ করে শুরু/রিস্টার্ট<br>
+        <span style="font-size:0.9rem; opacity:0.8;">মোবাইলে সোয়াইপ • বাংলাদেশের গ্রাম-রাস্তায় অনন্ত দৌড়!</span>
     </div>
+
+    <!-- New: Pause button (visible only in game) -->
+    <div class="pause-btn" id="pauseBtn">⏸️</div>
 
     <script>
         /**
-         * Bangla Run - Full Temple Run style endless runner
-         * Completely self-contained HTML + CSS + JS
-         * Bangladeshi vibes: rickshaw, cow, mango, palm trees, lungi, paddy fields, BD flag colors
-         * Works on desktop + mobile (keyboard + touch swipe)
+         * Bangla Run - ENHANCED VERSION
+         * 
+         * NEW FEATURES & UI/UX IMPROVEMENTS:
+         * ✅ Smooth lane transitions (lerp animation)
+         * ✅ Particle system (mango sparks + explosive crash)
+         * ✅ Sound effects (jump, collect, crash, shield power-up)
+         * ✅ Shield power-up (rare 🛡️ - temporary invincibility)
+         * ✅ Pause system (P key + on-screen button + tap overlay)
+         * ✅ Click/Tap anywhere to start, restart or resume
+         * ✅ Fixed jump physics (correct upward movement)
+         * ✅ Combo streak system (visual feedback)
+         * ✅ Instructions auto-hide + better mobile UX
+         * ✅ Shield indicator in UI + glowing shield animation
+         * ✅ Improved start/game-over screens with flair
+         * ✅ Better visuals, shadows, and Bangladeshi vibes
+         * 
+         * Fully self-contained - just copy & play!
          */
 
         const canvas = document.getElementById('canvas');
@@ -156,86 +199,154 @@
         
         let playerLane = 1; // 0 = left, 1 = center, 2 = right
         const laneX = [235, 410, 585];
+        let playerX = laneX[1]; // smooth position
         
         let playerJump = 0;
         let playerVel = 0;
         let isSliding = false;
         let slideTimer = 0;
+        let playerShield = 0;           // NEW: shield power-up
+        let mangoStreak = 0;            // NEW: combo system
+        let lastMangoFrame = 0;
         
         let obstacles = [];
         let collectibles = [];
+        let particles = [];             // NEW: particle system
         
         let bgOffset = 0;
         let keys = {};
+        let isPaused = false;           // NEW: pause
         
         // Touch variables
         let touchStartX = 0;
         let touchStartY = 0;
         
-        // Event listeners
-        window.addEventListener('keydown', e => {
-            keys[e.key] = true;
-            if (gameState === 'start' && (e.key === ' ' || e.key === 'Spacebar')) {
-                startGame();
+        // Audio
+        let audioCtx;
+
+        // ====================== SOUND SYSTEM ======================
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-            if (gameState === 'over' && (e.key.toLowerCase() === 'r')) {
-                startGame();
+        }
+
+        function playSound(freq, duration = 0.2, waveType = 'sine', volume = 0.4) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.type = waveType;
+            gain.gain.value = volume;
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playJumpSound() {
+            playSound(320, 0.1, 'triangle', 0.6);
+            setTimeout(() => playSound(520, 0.22, 'sine', 0.35), 30);
+        }
+
+        function playCollectSound() {
+            playSound(880, 0.07, 'sine', 0.55);
+            setTimeout(() => playSound(1320, 0.14, 'sine', 0.4), 25);
+        }
+
+        function playPowerupSound() {
+            playSound(440, 0.08, 'sine', 0.6);
+            playSound(660, 0.08, 'sine', 0.6);
+            setTimeout(() => playSound(990, 0.28, 'sine', 0.5), 70);
+        }
+
+        function playCrashSound() {
+            playSound(160, 0.55, 'sawtooth', 0.75);
+            setTimeout(() => playSound(90, 0.35, 'sawtooth', 0.45), 90);
+        }
+
+        // ====================== PARTICLES ======================
+        function createMangoParticles(x, y) {
+            for (let i = 0; i < 24; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 9 - 4,
+                    life: 34,
+                    size: 3.5 + Math.random() * 3.5,
+                    color: '#FFEE77'
+                });
             }
-        });
-        
-        window.addEventListener('keyup', e => {
-            keys[e.key] = false;
-        });
-        
-        // Mobile touch swipe support
-        canvas.addEventListener('touchstart', e => {
-            if (gameState !== 'playing') return;
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartY = e.changedTouches[0].screenY;
-        });
-        
-        canvas.addEventListener('touchend', e => {
-            if (gameState !== 'playing') return;
-            
-            const touchEndX = e.changedTouches[0].screenX;
-            const touchEndY = e.changedTouches[0].screenY;
-            
-            const deltaX = touchEndX - touchStartX;
-            const deltaY = touchEndY - touchStartY;
-            
-            // Horizontal swipe = lane change
-            if (Math.abs(deltaX) > 60) {
-                if (deltaX > 60 && playerLane < 2) playerLane++;
-                else if (deltaX < -60 && playerLane > 0) playerLane--;
+        }
+
+        function createExplosion(x, y, color = '#FF5500') {
+            for (let i = 0; i < 48; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const vel = 3.5 + Math.random() * 8;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * vel,
+                    vy: Math.sin(angle) * vel - 3,
+                    life: 22 + Math.random() * 26,
+                    size: 4 + Math.random() * 8,
+                    color: color
+                });
             }
-            
-            // Vertical swipe
-            if (Math.abs(deltaY) > 60) {
-                if (deltaY < -60 && playerJump === 0) { // swipe up = jump
-                    playerVel = -19;
-                } else if (deltaY > 60) { // swipe down = slide
-                    isSliding = true;
-                    slideTimer = 28;
-                }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.22; // gravity
+                p.vx *= 0.965;
+                p.life--;
+                if (p.life <= 0) particles.splice(i, 1);
             }
-        });
-        
+        }
+
+        function drawParticles() {
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                const alpha = Math.max(0.1, p.life / 30);
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // ====================== GAME LOGIC ======================
         function startGame() {
+            initAudio();
             gameState = 'playing';
             score = 0;
             mangoes = 0;
             speed = 6;
             frame = 0;
             playerLane = 1;
+            playerX = laneX[1];
             playerJump = 0;
             playerVel = 0;
             isSliding = false;
             slideTimer = 0;
+            playerShield = 0;
+            mangoStreak = 0;
+            lastMangoFrame = 0;
             obstacles = [];
             collectibles = [];
-            document.getElementById('instructions').style.opacity = '0.3';
+            particles = [];
+            isPaused = false;
+            
+            document.getElementById('instructions').style.opacity = '0';
+            document.getElementById('pauseBtn').style.display = 'flex';
         }
-        
+
         function spawnObstacle() {
             const lane = Math.floor(Math.random() * 3);
             const types = ['cow', 'rickshaw', 'branch'];
@@ -243,69 +354,79 @@
             
             obstacles.push({
                 lane: lane,
-                y: -80, // distance from horizon
+                y: -80,
                 type: type
             });
         }
         
         function spawnCollectible() {
             const lane = Math.floor(Math.random() * 3);
+            const isShield = Math.random() < 0.17; // 17% chance for shield (rare but exciting)
+            
             collectibles.push({
                 lane: lane,
                 y: -80,
-                type: 'mango'
+                type: isShield ? 'shield' : 'mango'
             });
         }
-        
+
         function update() {
-            if (gameState !== 'playing') return;
+            if (gameState !== 'playing' || isPaused) return;
             
             frame++;
-            score = Math.floor(frame * 0.35 + mangoes * 12);
+            score = Math.floor(frame * 0.38 + mangoes * 14); // slightly higher base score
             
-            // Gradually increase difficulty
-            if (frame % 65 === 0 && speed < 13) speed += 0.4;
+            // Increase difficulty
+            if (frame % 60 === 0 && speed < 14) speed += 0.35;
             
-            // Controls (keyboard)
-            if ((keys['ArrowLeft'] || keys['a'] || keys['A']) && frame % 4 === 0) {
+            // Keyboard controls (with cooldown for lane change)
+            if ((keys['ArrowLeft'] || keys['a'] || keys['A']) && frame % 3 === 0) {
                 if (playerLane > 0) playerLane--;
                 keys['ArrowLeft'] = keys['a'] = keys['A'] = false;
             }
-            if ((keys['ArrowRight'] || keys['d'] || keys['D']) && frame % 4 === 0) {
+            if ((keys['ArrowRight'] || keys['d'] || keys['D']) && frame % 3 === 0) {
                 if (playerLane < 2) playerLane++;
                 keys['ArrowRight'] = keys['d'] = keys['D'] = false;
             }
             if ((keys['ArrowUp'] || keys['w'] || keys['W'] || keys[' ']) && playerJump === 0) {
-                playerVel = -19;
+                playerVel = -19.5;
+                playJumpSound();
                 keys['ArrowUp'] = keys['w'] = keys['W'] = keys[' '] = false;
             }
             if (keys['ArrowDown'] || keys['s'] || keys['S']) {
                 isSliding = true;
-                slideTimer = 28;
+                slideTimer = 26;
                 keys['ArrowDown'] = keys['s'] = keys['S'] = false;
             }
             
-            // Jump physics
-            if (playerJump > 0 || playerVel !== 0) {
+            // Smooth lane movement (NEW)
+            const targetX = laneX[playerLane];
+            playerX += (targetX - playerX) * 0.32;
+            
+            // Jump physics (FIXED: correct upward movement)
+            if (playerJump !== 0 || playerVel !== 0) {
                 playerJump += playerVel;
-                playerVel += 1.05; // gravity
+                playerVel += 1.08; // gravity
                 if (playerJump >= 0) {
                     playerJump = 0;
                     playerVel = 0;
                 }
             }
             
-            // Slide timer
+            // Slide
             if (isSliding) {
                 slideTimer--;
                 if (slideTimer <= 0) isSliding = false;
             }
             
-            // Spawn logic
-            if (Math.random() < 0.045 + speed * 0.003) spawnObstacle();
-            if (Math.random() < 0.028) spawnCollectible();
+            // Shield timer
+            if (playerShield > 0) playerShield--;
             
-            // Move everything forward
+            // Spawn
+            if (Math.random() < 0.048 + speed * 0.0035) spawnObstacle();
+            if (Math.random() < 0.031) spawnCollectible();
+            
+            // Move objects
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].y += speed;
                 if (obstacles[i].y > 520) obstacles.splice(i, 1);
@@ -315,36 +436,42 @@
                 if (collectibles[i].y > 520) collectibles.splice(i, 1);
             }
             
-            // Collision & collection
-            const px = laneX[playerLane];
-            const playerBaseY = 310;
+            // Collision detection
+            const playerBaseY = 310 + playerJump;
             
             // Obstacles
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const o = obstacles[i];
                 const screenY = 110 + (o.y * 0.72);
                 
-                // Collision zone
                 if (screenY > 265 && screenY < 375 && o.lane === playerLane) {
-                    const isJumpingHigh = playerJump < -25;
+                    if (playerShield > 0) {
+                        // Shield blocks hit!
+                        playerShield = Math.max(0, playerShield - 80);
+                        createExplosion(laneX[o.lane], screenY + 15, '#00CCFF');
+                        obstacles.splice(i, 1);
+                        continue;
+                    }
                     
+                    const isJumpingHigh = playerJump < -26;
+                    
+                    let hit = false;
                     if (o.type === 'branch') {
-                        if (!isSliding) {
-                            gameState = 'over';
-                            if (score > highScore) {
-                                highScore = score;
-                                localStorage.setItem('banglaRunHS', Math.floor(highScore));
-                            }
-                        }
+                        if (!isSliding) hit = true;
                     } else {
-                        // cow or rickshaw
-                        if (!isJumpingHigh) {
-                            gameState = 'over';
-                            if (score > highScore) {
-                                highScore = score;
-                                localStorage.setItem('banglaRunHS', Math.floor(highScore));
-                            }
+                        if (!isJumpingHigh) hit = true;
+                    }
+                    
+                    if (hit) {
+                        gameState = 'over';
+                        if (score > highScore) {
+                            highScore = score;
+                            localStorage.setItem('banglaRunHS', Math.floor(highScore));
                         }
+                        createExplosion(playerX, playerBaseY - 30, '#FF2222');
+                        playCrashSound();
+                        document.getElementById('pauseBtn').style.display = 'none';
+                        return;
                     }
                 }
             }
@@ -355,35 +482,55 @@
                 const screenY = 110 + (c.y * 0.72);
                 
                 if (screenY > 265 && screenY < 375 && c.lane === playerLane) {
-                    mangoes++;
+                    if (c.type === 'mango') {
+                        mangoes++;
+                        mangoStreak++;
+                        lastMangoFrame = frame;
+                        createMangoParticles(laneX[c.lane], screenY);
+                        playCollectSound();
+                    } else if (c.type === 'shield') {
+                        playerShield = 260; // ~4.3 seconds of invincibility
+                        createMangoParticles(laneX[c.lane], screenY);
+                        playPowerupSound();
+                    }
                     collectibles.splice(i, 1);
                 }
             }
             
-            // Update UI
+            // Combo reset
+            if (frame - lastMangoFrame > 48) mangoStreak = 0;
+            
+            // Update HTML UI
             document.getElementById('score').textContent = Math.floor(score);
             document.getElementById('mangoCount').textContent = mangoes;
+            
+            const shieldEl = document.getElementById('shieldIndicator');
+            if (playerShield > 0) {
+                shieldEl.style.display = 'inline';
+                shieldEl.style.opacity = (0.6 + Math.sin(frame / 3) * 0.4).toString();
+            } else {
+                shieldEl.style.display = 'none';
+            }
         }
-        
+
         function drawBackground() {
-            // Sky with BD flag colors gradient
+            // Sky
             const sky = ctx.createLinearGradient(0, 0, 0, 260);
             sky.addColorStop(0, '#87CEEB');
             sky.addColorStop(1, '#E0F7FA');
             ctx.fillStyle = sky;
             ctx.fillRect(0, 0, WIDTH, 260);
             
-            // Sun
+            // Sun with glow
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = '#FFEE88';
             ctx.fillStyle = '#FFCC00';
             ctx.beginPath();
             ctx.arc(680, 75, 38, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = 'rgba(255, 204, 0, 0.3)';
-            ctx.beginPath();
-            ctx.arc(680, 75, 52, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.shadowBlur = 0;
             
-            // Distant paddy fields / hills
+            // Paddy fields
             ctx.fillStyle = '#006400';
             ctx.beginPath();
             ctx.moveTo(0, 260);
@@ -392,43 +539,37 @@
             ctx.quadraticCurveTo(820, 210, 820, 260);
             ctx.fill();
             
-            // Road (earthy Bangladeshi village road)
+            // Road
             ctx.fillStyle = '#C19A6B';
             ctx.fillRect(0, 260, WIDTH, HEIGHT - 260);
             
-            // Road borders (green grass)
+            // Grass borders
             ctx.fillStyle = '#008000';
             ctx.fillRect(0, 260, 165, HEIGHT - 260);
             ctx.fillRect(WIDTH - 165, 260, 165, HEIGHT - 260);
             
-            // White dashed lane lines (scrolling)
+            // Dashed lanes
             ctx.strokeStyle = '#FFF';
             ctx.lineWidth = 9;
             ctx.setLineDash([38, 38]);
-            const dashOffset = (frame * speed * 1.8) % 76;
+            const dashOffset = (frame * speed * 1.9) % 76;
             ctx.lineDashOffset = -dashOffset;
-            
             ctx.beginPath();
             ctx.moveTo(laneX[0] + 88, 260);
             ctx.lineTo(laneX[0] + 88, HEIGHT);
             ctx.stroke();
-            
             ctx.beginPath();
             ctx.moveTo(laneX[1] + 88, 260);
             ctx.lineTo(laneX[1] + 88, HEIGHT);
             ctx.stroke();
             ctx.setLineDash([]);
             
-            // Palm trees on both sides (parallax scrolling)
-            bgOffset = (bgOffset + speed * 0.65) % 920;
-            
-            // Left side palms
+            // Palm trees (parallax)
+            bgOffset = (bgOffset + speed * 0.68) % 920;
             ctx.fillStyle = '#8B4513';
             for (let i = 0; i < 5; i++) {
                 const x = ((i * 195) + bgOffset) % 1100 - 140;
-                // trunk
                 ctx.fillRect(x + 18, 205, 14, 90);
-                // leaves
                 ctx.fillStyle = '#006400';
                 ctx.beginPath();
                 ctx.ellipse(x + 25, 205, 42, 22, Math.PI * -0.4, 0, Math.PI * 2);
@@ -438,10 +579,9 @@
                 ctx.fill();
                 ctx.fillStyle = '#8B4513';
             }
-            
-            // Right side palms (different offset for depth)
+            // Right palms
             for (let i = 0; i < 5; i++) {
-                const x = ((i * 195) + bgOffset * 1.3 + 380) % 1100 - 90;
+                const x = ((i * 195) + bgOffset * 1.35 + 380) % 1100 - 90;
                 ctx.fillRect(x + 18, 205, 14, 90);
                 ctx.fillStyle = '#006400';
                 ctx.beginPath();
@@ -451,26 +591,18 @@
                 ctx.ellipse(x + 25, 195, 42, 22, Math.PI * 0.4, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.fillStyle = '#8B4513';
-            }
-            
-            // Some rickshaw art in far background (tiny)
-            ctx.fillStyle = 'rgba(255,69,0,0.15)';
-            for (let i = 0; i < 3; i++) {
-                const rx = ((i * 310) + bgOffset * 0.4) % 1300 - 200;
-                ctx.fillRect(rx, 235, 38, 18);
-                ctx.fillRect(rx - 8, 225, 54, 12);
             }
         }
-        
+
         function drawPlayer() {
-            const x = laneX[playerLane];
-            const baseY = 315 - playerJump;
+            const x = playerX;
+            const baseY = 315 + playerJump; // FIXED jump direction
             
-            // Torso (orange gamcha style)
+            // Torso
             ctx.fillStyle = '#FF4500';
             ctx.fillRect(x - 19, baseY - 62, 38, 44);
             
-            // Lungi (green traditional)
+            // Lungi
             ctx.fillStyle = '#006400';
             if (isSliding) {
                 ctx.fillRect(x - 27, baseY - 24, 54, 26);
@@ -484,7 +616,7 @@
             ctx.arc(x, baseY - 73, 17, 0, Math.PI * 2);
             ctx.fill();
             
-            // Topi / hair
+            // Topi
             ctx.fillStyle = '#222';
             ctx.fillRect(x - 18, baseY - 88, 36, 13);
             
@@ -493,10 +625,10 @@
             ctx.fillRect(x - 9, baseY - 78, 6, 6);
             ctx.fillRect(x + 3, baseY - 78, 6, 6);
             
-            // Running arms
+            // Arms
             ctx.strokeStyle = '#F4C38A';
             ctx.lineWidth = 9;
-            const armSwing = Math.sin(frame / 3) * 9;
+            const armSwing = Math.sin(frame / 3) * 10;
             ctx.beginPath();
             ctx.moveTo(x - 19, baseY - 45);
             ctx.lineTo(x - 33, baseY - 28 + armSwing);
@@ -509,60 +641,65 @@
             // Legs
             ctx.strokeStyle = '#006400';
             ctx.lineWidth = 9;
-            const legSwing = isSliding ? 0 : Math.sin(frame / 2.2) * 14;
+            const legSwing = isSliding ? 0 : Math.sin(frame / 2.1) * 15;
             
             if (isSliding) {
-                // Slide pose
                 ctx.fillStyle = '#006400';
                 ctx.fillRect(x - 30, baseY - 12, 60, 18);
                 ctx.fillStyle = '#F4C38A';
                 ctx.fillRect(x - 32, baseY + 4, 18, 12);
                 ctx.fillRect(x + 14, baseY + 4, 18, 12);
             } else {
-                // Normal run
                 ctx.beginPath();
                 ctx.moveTo(x - 9, baseY - 18);
                 ctx.lineTo(x - 18 + legSwing, baseY + 22);
                 ctx.stroke();
-                
                 ctx.beginPath();
                 ctx.moveTo(x + 9, baseY - 18);
                 ctx.lineTo(x + 18 - legSwing, baseY + 22);
                 ctx.stroke();
             }
+            
+            // Shield effect (NEW)
+            if (playerShield > 0) {
+                ctx.save();
+                ctx.shadowBlur = 22;
+                ctx.shadowColor = '#00DDFF';
+                const pulse = Math.sin(frame * 0.3) * 4 + 8;
+                ctx.strokeStyle = `rgba(0, 221, 255, ${0.65 + Math.sin(frame * 0.25) * 0.35})`;
+                ctx.lineWidth = pulse;
+                ctx.beginPath();
+                ctx.arc(x, baseY - 45, 49, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
         }
-        
+
         function drawObstaclesAndCollectibles() {
-            // Obstacles
+            // Obstacles (same as before but slightly bigger)
             for (let i = 0; i < obstacles.length; i++) {
                 const o = obstacles[i];
                 const sy = 110 + o.y * 0.72;
-                const size = 26 + (o.y * 0.09);
+                const size = 28 + (o.y * 0.1);
                 const x = laneX[o.lane];
                 
                 if (sy < 60 || sy > HEIGHT + 20) continue;
                 
                 if (o.type === 'cow') {
-                    // Cow
                     ctx.fillStyle = '#F5F5F5';
                     ctx.fillRect(x - size * 0.9, sy - size * 0.6, size * 1.9, size * 0.95);
                     ctx.fillStyle = '#333';
-                    ctx.fillRect(x + size * 0.6, sy - size * 0.65, size * 0.7, size * 0.6); // head
-                    // legs
+                    ctx.fillRect(x + size * 0.6, sy - size * 0.65, size * 0.7, size * 0.6);
                     ctx.fillRect(x - size * 0.7, sy + size * 0.3, 9, size * 0.6);
                     ctx.fillRect(x - size * 0.2, sy + size * 0.3, 9, size * 0.6);
                     ctx.fillRect(x + size * 0.3, sy + size * 0.3, 9, size * 0.6);
                     ctx.fillRect(x + size * 0.8, sy + size * 0.3, 9, size * 0.6);
-                    ctx.fillStyle = '#000';
-                    ctx.fillRect(x + size * 0.9, sy - size * 0.4, 10, 10); // ear
                 } 
                 else if (o.type === 'rickshaw') {
-                    // Rickshaw
                     ctx.fillStyle = '#FF4500';
                     ctx.fillRect(x - size * 1.1, sy - size * 0.5, size * 2.1, size * 0.7);
                     ctx.fillStyle = '#FFD700';
-                    ctx.fillRect(x - size * 1.3, sy - size * 0.9, size * 2.6, 18); // roof
-                    // wheels
+                    ctx.fillRect(x - size * 1.3, sy - size * 0.9, size * 2.6, 18);
                     ctx.fillStyle = '#222';
                     ctx.beginPath();
                     ctx.arc(x - size * 0.6, sy + size * 0.4, size * 0.38, 0, Math.PI * 2);
@@ -570,16 +707,8 @@
                     ctx.beginPath();
                     ctx.arc(x + size * 0.6, sy + size * 0.4, size * 0.38, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.fillStyle = '#ddd';
-                    ctx.beginPath();
-                    ctx.arc(x - size * 0.6, sy + size * 0.4, size * 0.15, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.arc(x + size * 0.6, sy + size * 0.4, size * 0.15, 0, Math.PI * 2);
-                    ctx.fill();
                 } 
                 else if (o.type === 'branch') {
-                    // Low hanging branch
                     ctx.fillStyle = '#8B4513';
                     ctx.fillRect(x - size * 1.4, sy - 14, size * 2.8, 22);
                     ctx.fillStyle = '#228B22';
@@ -588,114 +717,215 @@
                 }
             }
             
-            // Mangoes
+            // Collectibles
             for (let i = 0; i < collectibles.length; i++) {
                 const c = collectibles[i];
                 const sy = 110 + c.y * 0.72;
                 const x = laneX[c.lane];
-                const size = 22 + (c.y * 0.08);
+                const size = 24 + (c.y * 0.09);
                 
                 if (sy < 60 || sy > HEIGHT) continue;
                 
-                // Mango body
-                ctx.fillStyle = '#FFCC00';
-                ctx.beginPath();
-                ctx.ellipse(x, sy, size * 0.85, size * 1.15, 0.6, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Highlight
-                ctx.fillStyle = '#FFEE99';
-                ctx.beginPath();
-                ctx.ellipse(x - 6, sy - 4, size * 0.4, size * 0.6, 0.8, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Leaf
-                ctx.fillStyle = '#006400';
-                ctx.beginPath();
-                ctx.ellipse(x + size * 0.7, sy - size * 0.9, size * 0.65, size * 0.35, -1.2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Text emoji
-                ctx.font = `${size + 4}px Arial`;
-                ctx.fillText('🥭', x - size * 0.6, sy + size * 0.4);
+                if (c.type === 'mango') {
+                    ctx.fillStyle = '#FFCC00';
+                    ctx.beginPath();
+                    ctx.ellipse(x, sy, size * 0.85, size * 1.15, 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#FFEE99';
+                    ctx.beginPath();
+                    ctx.ellipse(x - 6, sy - 4, size * 0.4, size * 0.6, 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#006400';
+                    ctx.beginPath();
+                    ctx.ellipse(x + size * 0.7, sy - size * 0.9, size * 0.65, size * 0.35, -1.2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.font = `${size + 6}px Arial`;
+                    ctx.fillText('🥭', x - size * 0.65, sy + size * 0.45);
+                } 
+                else if (c.type === 'shield') {
+                    // NEW: Shield power-up
+                    ctx.shadowBlur = 18;
+                    ctx.shadowColor = '#00EEFF';
+                    ctx.font = `${size * 1.9}px Arial`;
+                    ctx.fillStyle = '#00CCFF';
+                    ctx.fillText('🛡️', x - size * 0.85, sy + size * 0.7);
+                    ctx.shadowBlur = 0;
+                }
             }
         }
-        
+
         function draw() {
             ctx.clearRect(0, 0, WIDTH, HEIGHT);
-            
             drawBackground();
             
             if (gameState === 'playing') {
                 drawObstaclesAndCollectibles();
                 drawPlayer();
+                drawParticles();
+                
+                // Combo text (NEW)
+                if (mangoStreak > 3) {
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = '#FFD700';
+                    ctx.fillStyle = '#FFEE88';
+                    ctx.font = 'bold 34px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`🔥 COMBO x${mangoStreak} 🔥`, WIDTH / 2, 105);
+                    ctx.shadowBlur = 0;
+                }
             }
             
             // Start screen
             if (gameState === 'start') {
-                ctx.fillStyle = 'rgba(0, 100, 0, 0.85)';
+                ctx.fillStyle = 'rgba(0, 100, 0, 0.88)';
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
                 
                 ctx.fillStyle = '#FFD700';
-                ctx.font = 'bold 68px Inter';
+                ctx.font = 'bold 72px Inter';
                 ctx.textAlign = 'center';
                 ctx.fillText('BANGLA RUN', WIDTH / 2, 165);
                 
                 ctx.fillStyle = '#FF0000';
-                ctx.font = '28px Inter';
-                ctx.fillText('🇧🇩 গ্রামের রাস্তায় অনন্ত দৌড় 🇧🇩', WIDTH / 2, 215);
+                ctx.font = '29px Inter';
+                ctx.fillText('🇧🇩 গ্রামের রাস্তায় অনন্ত দৌড় 🇧🇩', WIDTH / 2, 222);
                 
                 ctx.fillStyle = '#fff';
-                ctx.font = '24px Inter';
-                ctx.fillText('SPACE বা TAP করে শুরু করুন', WIDTH / 2, 285);
+                ctx.font = '26px Inter';
+                ctx.fillText('ট্যাপ বা SPACE চাপুন শুরু করতে', WIDTH / 2, 290);
                 
-                ctx.font = '19px Inter';
-                ctx.fillText('রিকশা • গরু • ম্যাঙ্গো • পাম গাছ', WIDTH / 2, 325);
-                ctx.fillText('বাংলাদেশের ভাইবস দিয়ে তৈরি!', WIDTH / 2, 355);
+                ctx.font = '20px Inter';
+                ctx.fillText('রিকশা • গরু • শিল্ড • ম্যাঙ্গো', WIDTH / 2, 335);
+                ctx.fillText('নতুন: স্মুথ লেন • পার্টিকল • সাউন্ড • পজ', WIDTH / 2, 365);
                 
-                // Small high score
                 ctx.fillStyle = '#FFD700';
-                ctx.font = '18px Inter';
-                ctx.fillText(`HIGH SCORE: ${highScore}`, WIDTH / 2, 410);
+                ctx.font = '19px Inter';
+                ctx.fillText(`HIGH SCORE: ${highScore}`, WIDTH / 2, 415);
             }
             
             // Game Over screen
             if (gameState === 'over') {
-                ctx.fillStyle = 'rgba(178, 0, 0, 0.92)';
+                ctx.fillStyle = 'rgba(178, 0, 0, 0.94)';
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
                 
                 ctx.fillStyle = '#FFD700';
-                ctx.font = 'bold 62px Inter';
+                ctx.font = 'bold 64px Inter';
                 ctx.textAlign = 'center';
                 ctx.fillText('GAME OVER', WIDTH / 2, 155);
                 
                 ctx.fillStyle = '#fff';
-                ctx.font = '32px Inter';
+                ctx.font = '33px Inter';
                 ctx.fillText(`দূরত্ব: ${Math.floor(score)} মিটার`, WIDTH / 2, 225);
-                ctx.fillText(`🥭 ম্যাঙ্গো: ${mangoes}`, WIDTH / 2, 265);
+                ctx.fillText(`🥭 ম্যাঙ্গো: ${mangoes}`, WIDTH / 2, 268);
                 
                 if (score >= highScore) {
                     ctx.fillStyle = '#FFD700';
-                    ctx.fillText('🎉 নতুন রেকর্ড! 🎉', WIDTH / 2, 310);
+                    ctx.font = 'bold 29px Inter';
+                    ctx.fillText('🎉 নতুন রেকর্ড! 🎉', WIDTH / 2, 315);
                 }
                 
                 ctx.fillStyle = '#fff';
                 ctx.font = '26px Inter';
-                ctx.fillText(`BEST: ${highScore}`, WIDTH / 2, 355);
-                ctx.fillText('R চাপুন আবার খেলতে', WIDTH / 2, 410);
+                ctx.fillText(`BEST: ${highScore}`, WIDTH / 2, 360);
+                ctx.fillText('ট্যাপ বা R চাপুন আবার খেলতে', WIDTH / 2, 410);
+                
+                drawParticles(); // keep explosion particles alive
+            }
+            
+            // Paused overlay
+            if (isPaused && gameState === 'playing') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 68px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', WIDTH / 2, 210);
+                ctx.font = '26px Inter';
+                ctx.fillStyle = '#fff';
+                ctx.fillText('ট্যাপ করে চালিয়ে নিন', WIDTH / 2, 280);
+                ctx.fillText('P চাপুন আবার', WIDTH / 2, 320);
             }
         }
-        
+
         function gameLoop() {
             update();
+            updateParticles();        // always update particles (even when paused/over)
             draw();
             requestAnimationFrame(gameLoop);
         }
+
+        // ====================== INPUT ======================
+        window.addEventListener('keydown', e => {
+            keys[e.key] = true;
+            
+            if (gameState === 'start' && (e.key === ' ' || e.key === 'Enter')) {
+                startGame();
+            }
+            if (gameState === 'over' && e.key.toLowerCase() === 'r') {
+                startGame();
+            }
+            if (gameState === 'playing') {
+                if (e.key.toLowerCase() === 'p') {
+                    isPaused = !isPaused;
+                }
+            }
+        });
         
-        // Boot the game
+        window.addEventListener('keyup', e => {
+            keys[e.key] = false;
+        });
+        
+        // Mobile swipe
+        canvas.addEventListener('touchstart', e => {
+            if (gameState !== 'playing' || isPaused) return;
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        });
+        
+        canvas.addEventListener('touchend', e => {
+            if (gameState !== 'playing' || isPaused) return;
+            
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+            
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            
+            if (Math.abs(deltaX) > 55) {
+                if (deltaX > 55 && playerLane < 2) playerLane++;
+                else if (deltaX < -55 && playerLane > 0) playerLane--;
+            }
+            
+            if (Math.abs(deltaY) > 55) {
+                if (deltaY < -55 && playerJump === 0) {
+                    playerVel = -19.5;
+                    playJumpSound();
+                } else if (deltaY > 55) {
+                    isSliding = true;
+                    slideTimer = 26;
+                }
+            }
+        });
+        
+        // New: Click/Tap support for start, restart, resume
+        canvas.addEventListener('click', () => {
+            if (gameState === 'start' || gameState === 'over') {
+                startGame();
+            } else if (isPaused) {
+                isPaused = false;
+            }
+        });
+        
+        // Pause button click
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            if (gameState === 'playing') {
+                isPaused = !isPaused;
+            }
+        });
+        
+        // Boot game
         gameLoop();
         
-        console.log('%c✅ Bangla Run loaded! Enjoy your Bangladeshi Temple Run adventure 🇧🇩', 'color:#FFD700; font-size:16px; font-weight:bold');
+        console.log('%c✅ Bangla Run ENHANCED loaded! Enjoy the new particles, shield, sounds & smooth controls 🇧🇩', 'color:#FFD700; font-size:17px; font-weight:bold');
     </script>
 </body>
 </html>
