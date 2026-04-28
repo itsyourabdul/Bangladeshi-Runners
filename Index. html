@@ -3,884 +3,699 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D HORROR SNAKE</title>
+    <title>Bangla Run 🇧🇩 - টেম্পল রানের বাংলা ভার্সন</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; }
-        canvas { display: block; }
-        #ui {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #ff0000;
-            text-shadow: 0 0 12px #ff0000, 0 0 24px #800000;
-            font-size: 28px;
-            pointer-events: none;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            letter-spacing: 2px;
-        }
-        #ui span {
-            font-weight: bold;
-        }
-        #gameOver {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff0000;
-            font-size: 80px;
-            text-shadow: 0 0 20px #ff0000, 0 0 40px #800000;
-            display: none;
-            text-align: center;
-            z-index: 200;
-            pointer-events: none;
-            line-height: 1.1;
-        }
-        #pause {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ffcc00;
-            font-size: 68px;
-            text-shadow: 0 0 20px #ffcc00, 0 0 40px #aa8800;
-            display: none;
-            text-align: center;
-            z-index: 200;
-            pointer-events: none;
-            line-height: 1.1;
-        }
-        #flash {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #ff0000;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 300;
-            transition: opacity 80ms ease-out;
-        }
-        #instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            color: #660000;
-            font-size: 14px;
-            text-shadow: 0 0 8px #ff0000;
-            z-index: 100;
-            opacity: 0.85;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;family=Noto+Sans+Bengali:wght@400;700&amp;display=swap');
+
+        :root {
+            --bd-green: #006400;
+            --bd-red: #FF0000;
+            --bd-gold: #FFD700;
         }
 
-        /* Snake Selection Screen */
-        #snakeSelect {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(10, 0, 20, 0.98);
-            z-index: 1000;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(#006400, #228B22);
+            font-family: 'Inter', 'Noto Sans Bengali', sans-serif;
+            color: white;
+            overflow: hidden;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
-            color: #ff0000;
-            text-shadow: 0 0 12px #ff0000;
-            font-family: monospace;
+            height: 100vh;
+            position: relative;
         }
-        .snake-option {
-            cursor: pointer;
-            width: 240px;
-            border-radius: 16px;
-            padding: 20px;
+
+        h1 {
+            font-size: 3.2rem;
+            font-weight: 700;
+            color: #FFD700;
+            text-shadow: 
+                4px 4px 0 #FF0000,
+                -2px -2px 0 #FF0000;
+            margin-bottom: 12px;
+            letter-spacing: 4px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        canvas {
+            border: 12px solid #FFD700;
+            border-radius: 20px;
+            box-shadow: 
+                0 0 40px rgba(255, 215, 0, 0.6),
+                0 0 0 8px #FF0000;
+            background: #111;
+            max-width: 100%;
+            max-height: 90vh;
+        }
+
+        .ui {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #FFD700;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            white-space: nowrap;
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 14px 24px;
+            border-radius: 15px;
+            font-size: 1.1rem;
             text-align: center;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            max-width: 820px;
+            line-height: 1.4;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
         }
-        .snake-option:hover {
-            transform: scale(1.05);
+
+        .flag {
+            font-size: 2.2rem;
+            animation: wave 2s infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: rotate(-8deg); }
+            50% { transform: rotate(8deg); }
+        }
+
+        .overlay-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 20;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
-    <!-- Snake Selection Screen (shown first) -->
-    <div id="snakeSelect">
-        <h1 style="font-size: 52px; margin-bottom: 10px; letter-spacing: 4px;">CHOOSE YOUR SERPENT</h1>
-        <p style="font-size: 22px; opacity: 0.8; margin-bottom: 40px; color: #ffcc88;">THE FOREST AWAITS YOUR HORROR...</p>
-        
-        <div style="display: flex; gap: 50px; justify-content: center;">
-            
-            <!-- Snake Type 1: Venom Green -->
-            <div onclick="chooseSnake(0)" class="snake-option" style="background: #112211; border: 6px solid #22aa22; box-shadow: 0 0 30px #22aa22;">
-                <div style="font-size: 28px; color: #22aa22; margin-bottom: 15px; font-weight: bold;">VENOM GREEN</div>
-                <div style="display:flex; justify-content:center; align-items:center; gap: 12px; margin-bottom:20px; height: 60px;">
-                    <div style="width:55px; height:55px; background:#22aa22; border-radius:12px; box-shadow:0 0 25px #00ff88;"></div>
-                    <div style="width:42px; height:42px; background:#0f4a0f; border-radius:50%; box-shadow:0 0 15px #002200;"></div>
-                    <div style="width:42px; height:42px; background:#0f4a0f; border-radius:50%; box-shadow:0 0 15px #002200;"></div>
-                    <div style="width:42px; height:42px; background:#0f4a0f; border-radius:50%; box-shadow:0 0 15px #002200;"></div>
-                </div>
-                <div style="color:#88ff88; font-size:15px;">Classic venomous terror</div>
-            </div>
+    <h1>
+        <span class="flag">🇧🇩</span>
+        BANGLA RUN
+        <span class="flag">🇧🇩</span>
+    </h1>
 
-            <!-- Snake Type 2: Crimson Reaper -->
-            <div onclick="chooseSnake(1)" class="snake-option" style="background: #221111; border: 6px solid #cc2222; box-shadow: 0 0 30px #cc2222;">
-                <div style="font-size: 28px; color: #cc2222; margin-bottom: 15px; font-weight: bold;">CRIMSON REAPER</div>
-                <div style="display:flex; justify-content:center; align-items:center; gap: 12px; margin-bottom:20px; height: 60px;">
-                    <div style="width:55px; height:55px; background:#cc2222; border-radius:12px; box-shadow:0 0 25px #ff4444;"></div>
-                    <div style="width:42px; height:42px; background:#661111; border-radius:50%; box-shadow:0 0 15px #440000;"></div>
-                    <div style="width:42px; height:42px; background:#661111; border-radius:50%; box-shadow:0 0 15px #440000;"></div>
-                    <div style="width:42px; height:42px; background:#661111; border-radius:50%; box-shadow:0 0 15px #440000;"></div>
-                </div>
-                <div style="color:#ff8888; font-size:15px;">Bloodthirsty hunter</div>
-            </div>
+    <canvas id="canvas" width="820" height="480"></canvas>
 
-            <!-- Snake Type 3: Phantom Shadow -->
-            <div onclick="chooseSnake(2)" class="snake-option" style="background: #111122; border: 6px solid #4444aa; box-shadow: 0 0 30px #4444aa;">
-                <div style="font-size: 28px; color: #4444aa; margin-bottom: 15px; font-weight: bold;">PHANTOM SHADOW</div>
-                <div style="display:flex; justify-content:center; align-items:center; gap: 12px; margin-bottom:20px; height: 60px;">
-                    <div style="width:55px; height:55px; background:#4444aa; border-radius:12px; box-shadow:0 0 25px #88aaff;"></div>
-                    <div style="width:42px; height:42px; background:#222233; border-radius:50%; box-shadow:0 0 15px #000044;"></div>
-                    <div style="width:42px; height:42px; background:#222233; border-radius:50%; box-shadow:0 0 15px #000044;"></div>
-                    <div style="width:42px; height:42px; background:#222233; border-radius:50%; box-shadow:0 0 15px #000044;"></div>
-                </div>
-                <div style="color:#88aaff; font-size:15px;">Ethereal nightmare</div>
-            </div>
-
-        </div>
-
-        <div style="margin-top: 60px; font-size: 18px; opacity: 0.7;">
-            ARROW KEYS or WASD • EAT THE EYES • SURVIVE THE FOREST • P: PAUSE
-        </div>
+    <div class="ui" id="ui">
+        দূরত্ব: <span id="score">0</span>m 
+        <span style="margin-left:20px; color:#FFD700;">🥭</span> 
+        <span id="mangoCount">0</span>
     </div>
 
-    <div id="ui">
-        SCORE: <span id="score">0</span>
-        <span style="font-size:22px; opacity:0.8;">|</span>
-        HIGH SCORE: <span id="highScore">0</span>
-    </div>
-    <div id="gameOver">
-        YOU DIED<br>
-        <span id="finalScoreDisplay" style="font-size: 34px; display: block; margin: 12px 0 8px;">FINAL SCORE: 0</span>
-        <span style="font-size: 24px;">PRESS R TO RESTART</span>
-    </div>
-    <div id="pause">
-        PAUSED<br>
-        <span style="font-size: 24px;">PRESS P TO RESUME</span>
-    </div>
-    <div id="flash"></div>
-    <div id="instructions">
-        ARROW KEYS or WASD • EAT THE EYES • SURVIVE THE FOREST • P: PAUSE
+    <div class="instructions" id="instructions">
+        ← → বা A D → লেন চেঞ্জ<br>
+        ↑ বা W বা SPACE → লাফ (গরু/রিকশা এড়ান)<br>
+        ↓ বা S → স্লাইড (ডালপালা এড়ান)<br>
+        🥭 ম্যাঙ্গো সংগ্রহ করুন!<br>
+        <span style="font-size:0.9rem; opacity:0.8;">মোবাইলে সোয়াইপ করুন • বাংলাদেশের গ্রাম-রাস্তায় অনন্ত দৌড়!</span>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script>
-        // =============================================
-        // 3D HORROR SNAKE - ULTRA SMOOTH Forest Edition
-        // • Snake selection (3 unique horror serpents)
-        // • Length UI completely removed
-        // • Fully playable with improved UX
-        // =============================================
+        /**
+         * Bangla Run - Full Temple Run style endless runner
+         * Completely self-contained HTML + CSS + JS
+         * Bangladeshi vibes: rickshaw, cow, mango, palm trees, lungi, paddy fields, BD flag colors
+         * Works on desktop + mobile (keyboard + touch swipe)
+         */
 
-        let scene, camera, renderer;
-        let snakeMeshes = [];
-        let snakeGridPositions = [];
-        let previousSnakeGrid = [];
-        let foodMesh = null;
-        let foodGrid = null;
-        let direction = new THREE.Vector3(1, 0, 0);
-        let pendingDirection = null;
-        let gameOver = false;
-        let paused = false;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const WIDTH = 820;
+        const HEIGHT = 480;
+        
+        let gameState = 'start'; // start, playing, over
         let score = 0;
-        let highScore = parseInt(localStorage.getItem('horrorSnakeHighScore') || '0');
-        let lastMoveTime = 0;
-        let clock;
-        let MOVE_INTERVAL = 200;
-
-        // Selected snake type (0 = Venom Green, 1 = Crimson Reaper, 2 = Phantom Shadow)
-        let selectedSnakeType = 0;
-
-        // Horror elements
-        let dirLight, ambientLight, hemiLight, redLight;
-        let eyeMeshes = [];
-
-        // Shake
-        let shakeIntensity = 0;
-        let shakeDecay = 0;
-
-        const CONFIG = {
-            SNAKE_COLOR: 0x0f4a0f,
-            HEAD_COLOR: 0x22aa22,
-            BODY_EMISSIVE: 0x002200,
-            FLOOR_COLOR: 0x221133,
-            FOG_COLOR: 0x223355,
-            EYE_GLOW: 0x00ff88,
-            GRID_SIZE: 22,
-            CELL_SIZE: 2.2,
-            INITIAL_LENGTH: 6
-        };
-
-        // New: 3 unique snake types with distinct horror aesthetics
-        const SNAKE_TYPES = [
-            {
-                // 0 - Venom Green (original classic)
-                name: "VENOM GREEN",
-                headColor: 0x22aa22,
-                bodyColor: 0x0f4a0f,
-                bodyEmissive: 0x002200,
-                eyeColor: 0xff0000
-            },
-            {
-                // 1 - Crimson Reaper (blood theme)
-                name: "CRIMSON REAPER",
-                headColor: 0xcc2222,
-                bodyColor: 0x661111,
-                bodyEmissive: 0x220000,
-                eyeColor: 0x00ffdd
-            },
-            {
-                // 2 - Phantom Shadow (dark ethereal)
-                name: "PHANTOM SHADOW",
-                headColor: 0x4444aa,
-                bodyColor: 0x222233,
-                bodyEmissive: 0x000044,
-                eyeColor: 0xff8800
+        let mangoes = 0;
+        let highScore = localStorage.getItem('banglaRunHS') ? parseInt(localStorage.getItem('banglaRunHS')) : 0;
+        let speed = 6;
+        let frame = 0;
+        
+        let playerLane = 1; // 0 = left, 1 = center, 2 = right
+        const laneX = [235, 410, 585];
+        
+        let playerJump = 0;
+        let playerVel = 0;
+        let isSliding = false;
+        let slideTimer = 0;
+        
+        let obstacles = [];
+        let collectibles = [];
+        
+        let bgOffset = 0;
+        let keys = {};
+        
+        // Touch variables
+        let touchStartX = 0;
+        let touchStartY = 0;
+        
+        // Event listeners
+        window.addEventListener('keydown', e => {
+            keys[e.key] = true;
+            if (gameState === 'start' && (e.key === ' ' || e.key === 'Spacebar')) {
+                startGame();
             }
-        ];
-
-        // Helper: convert grid coords to world position
-        function gridToWorld(gridPos) {
-            return new THREE.Vector3(
-                (gridPos.x - CONFIG.GRID_SIZE / 2 + 0.5) * CONFIG.CELL_SIZE,
-                0.5,
-                (gridPos.z - CONFIG.GRID_SIZE / 2 + 0.5) * CONFIG.CELL_SIZE
-            );
-        }
-
-        // Create a single snake segment - now supports 3 different snake types
-        function createSegmentMesh(isHead = false, snakeType = 0) {
-            const config = SNAKE_TYPES[snakeType];
+            if (gameState === 'over' && (e.key.toLowerCase() === 'r')) {
+                startGame();
+            }
+        });
+        
+        window.addEventListener('keyup', e => {
+            keys[e.key] = false;
+        });
+        
+        // Mobile touch swipe support
+        canvas.addEventListener('touchstart', e => {
+            if (gameState !== 'playing') return;
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        });
+        
+        canvas.addEventListener('touchend', e => {
+            if (gameState !== 'playing') return;
             
-            let mesh;
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
             
-            if (isHead) {
-                const geometry = new THREE.BoxGeometry(
-                    CONFIG.CELL_SIZE * 0.88, 
-                    CONFIG.CELL_SIZE * 0.92, 
-                    CONFIG.CELL_SIZE * 1.35
-                );
-                
-                const material = new THREE.MeshStandardMaterial({
-                    color: config.headColor,
-                    emissive: config.bodyEmissive,
-                    emissiveIntensity: 1.0,
-                    roughness: 0.4,
-                    metalness: 0.35
-                });
-                
-                mesh = new THREE.Mesh(geometry, material);
-                mesh.castShadow = true;
-                mesh.receiveShadow = true;
-                
-                // Glowing eyes - color varies by snake type
-                const eyeGeo = new THREE.SphereGeometry(0.27, 12, 12);
-                const eyeMat = new THREE.MeshBasicMaterial({ color: config.eyeColor });
-                
-                const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-                leftEye.position.set(0.38, 0.38, 0.48);
-                mesh.add(leftEye);
-                
-                const rightEye = leftEye.clone();
-                rightEye.position.set(-0.38, 0.38, 0.48);
-                mesh.add(rightEye);
-            } else {
-                // Ultra-smooth cylindrical body
-                const geometry = new THREE.CylinderGeometry(
-                    CONFIG.CELL_SIZE * 0.38,
-                    CONFIG.CELL_SIZE * 0.42,
-                    CONFIG.CELL_SIZE * 0.92,
-                    24
-                );
-                
-                const material = new THREE.MeshStandardMaterial({
-                    color: config.bodyColor,
-                    emissive: config.bodyEmissive,
-                    emissiveIntensity: 0.55,
-                    roughness: 0.4,
-                    metalness: 0.15
-                });
-                
-                mesh = new THREE.Mesh(geometry, material);
-                mesh.castShadow = true;
-                mesh.receiveShadow = true;
-                mesh.rotation.x = Math.PI / 2;
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            
+            // Horizontal swipe = lane change
+            if (Math.abs(deltaX) > 60) {
+                if (deltaX > 60 && playerLane < 2) playerLane++;
+                else if (deltaX < -60 && playerLane > 0) playerLane--;
             }
             
-            return mesh;
-        }
-
-        // Create glowing background eye
-        function createEye() {
-            const eye = new THREE.Mesh(
-                new THREE.SphereGeometry(0.25, 8, 8),
-                new THREE.MeshBasicMaterial({
-                    color: CONFIG.EYE_GLOW,
-                    transparent: true,
-                    opacity: 0.95
-                })
-            );
-            const ring = new THREE.Mesh(
-                new THREE.RingGeometry(0.28, 0.35, 8),
-                new THREE.MeshBasicMaterial({
-                    color: CONFIG.EYE_GLOW,
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    opacity: 0.5
-                })
-            );
-            ring.rotation.x = Math.PI / 2;
-            eye.add(ring);
-            return eye;
-        }
-
-        // Realistic forest tree
-        function createTree() {
-            const group = new THREE.Group();
-            
-            const trunkGeometry = new THREE.CylinderGeometry(0.35, 0.55, 5.2, 6);
-            const trunkMaterial = new THREE.MeshStandardMaterial({
-                color: 0x3c2a1f,
-                roughness: 1,
-                metalness: 0.05
-            });
-            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-            trunk.position.y = 2.6;
-            trunk.castShadow = true;
-            trunk.receiveShadow = true;
-            group.add(trunk);
-            
-            const foliageMaterial = new THREE.MeshStandardMaterial({
-                color: 0x0d2e0d,
-                roughness: 0.9,
-                metalness: 0
-            });
-            
-            const foliageData = [
-                { radius: 2.9, height: 3.6, y: 5.1 },
-                { radius: 2.2, height: 3.2, y: 7.4 },
-                { radius: 1.4, height: 2.8, y: 9.3 }
-            ];
-            
-            foliageData.forEach(data => {
-                const cone = new THREE.Mesh(
-                    new THREE.ConeGeometry(data.radius, data.height, 8),
-                    foliageMaterial
-                );
-                cone.position.y = data.y;
-                cone.castShadow = true;
-                group.add(cone);
-            });
-            
-            return group;
-        }
-
-        // NEW: Snake-like serpent stone
-        function createSerpentStone() {
-            const group = new THREE.Group();
-            
-            const baseGeo = new THREE.CylinderGeometry(1.1, 1.45, 1.9, 8);
-            const baseMat = new THREE.MeshStandardMaterial({
-                color: 0x444444,
-                roughness: 1,
-                metalness: 0.1
-            });
-            const base = new THREE.Mesh(baseGeo, baseMat);
-            base.position.y = 0.95;
-            base.castShadow = true;
-            base.receiveShadow = true;
-            group.add(base);
-            
-            const stoneMat = new THREE.MeshStandardMaterial({
-                color: 0x2f2f2f,
-                roughness: 0.95,
-                metalness: 0.05
-            });
-            
-            for (let i = 0; i < 9; i++) {
-                const radius = 0.58 - (i * 0.035);
-                const seg = new THREE.Mesh(
-                    new THREE.CylinderGeometry(radius, radius + 0.04, 1.08, 9),
-                    stoneMat
-                );
-                seg.position.y = 2.0 + i * 0.96;
-                
-                const twist = Math.sin(i * 1.15) * 0.72;
-                seg.rotation.z = twist;
-                seg.rotation.x = Math.cos(i * 0.85) * 0.38;
-                
-                seg.castShadow = true;
-                seg.receiveShadow = true;
-                group.add(seg);
-            }
-            
-            const head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.68, 8, 8),
-                stoneMat
-            );
-            head.position.y = 2.0 + 9 * 0.96 + 0.3;
-            head.castShadow = true;
-            group.add(head);
-            
-            const eyeGeo = new THREE.SphereGeometry(0.16, 8, 8);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: CONFIG.EYE_GLOW });
-            const stoneEye = new THREE.Mesh(eyeGeo, eyeMat);
-            stoneEye.position.set(0.32, head.position.y + 0.18, 0.25);
-            group.add(stoneEye);
-            
-            return group;
-        }
-
-        // Initialize Three.js scene
-        function initScene() {
-            scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(CONFIG.FOG_COLOR, 18, 110);
-            
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-            camera.position.set(0, 38, 45);
-            camera.lookAt(0, 0, 0);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            document.body.appendChild(renderer.domElement);
-            
-            clock = new THREE.Clock();
-            
-            // Lighting
-            ambientLight = new THREE.AmbientLight(0x335577, 0.68);
-            scene.add(ambientLight);
-            
-            hemiLight = new THREE.HemisphereLight(0x445577, CONFIG.FLOOR_COLOR, 0.58);
-            scene.add(hemiLight);
-            
-            dirLight = new THREE.DirectionalLight(0xffeecc, 1.3);
-            dirLight.position.set(25, 40, 20);
-            dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 1024;
-            dirLight.shadow.mapSize.height = 1024;
-            dirLight.shadow.camera.near = 1;
-            dirLight.shadow.camera.far = 100;
-            dirLight.shadow.camera.left = -42;
-            dirLight.shadow.camera.right = 42;
-            dirLight.shadow.camera.top = 42;
-            dirLight.shadow.camera.bottom = -42;
-            scene.add(dirLight);
-            
-            redLight = new THREE.PointLight(0xff2233, 0.9, 80);
-            redLight.position.set(15, 12, -15);
-            scene.add(redLight);
-            
-            // Large forest floor
-            const floorGeo = new THREE.PlaneGeometry(
-                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 72,
-                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 72
-            );
-            const floorMat = new THREE.MeshStandardMaterial({
-                color: CONFIG.FLOOR_COLOR,
-                roughness: 0.88,
-                metalness: 0.12
-            });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.y = -0.1;
-            floor.receiveShadow = true;
-            scene.add(floor);
-            
-            const arenaHalf = (CONFIG.GRID_SIZE * CONFIG.CELL_SIZE) / 2;
-            
-            // Background glowing eyes
-            eyeMeshes = [];
-            const eyeCountPerWall = 6;
-            for (let i = 0; i < eyeCountPerWall; i++) {
-                const eye = createEye();
-                eye.position.set(-arenaHalf - 2, 3 + Math.random() * 4, -arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))));
-                scene.add(eye);
-                eyeMeshes.push(eye);
-            }
-            for (let i = 0; i < eyeCountPerWall; i++) {
-                const eye = createEye();
-                eye.position.set(arenaHalf + 2, 3 + Math.random() * 4, -arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))));
-                scene.add(eye);
-                eyeMeshes.push(eye);
-            }
-            for (let i = 0; i < eyeCountPerWall; i++) {
-                const eye = createEye();
-                eye.position.set(-arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))), 3 + Math.random() * 4, -arenaHalf - 2);
-                scene.add(eye);
-                eyeMeshes.push(eye);
-            }
-            
-            // Forest trees (reduced count)
-            const numTrees = 20;
-            const treeSpread = CONFIG.GRID_SIZE * CONFIG.CELL_SIZE * 1.9;
-            for (let i = 0; i < numTrees; i++) {
-                const tree = createTree();
-                const x = (Math.random() - 0.5) * treeSpread;
-                const z = (Math.random() - 0.5) * treeSpread;
-                tree.position.set(x, 0, z);
-                tree.rotation.y = Math.random() * Math.PI * 2;
-                scene.add(tree);
-            }
-            
-            // Serpent stones
-            const numSerpentStones = 8;
-            for (let i = 0; i < numSerpentStones; i++) {
-                const stone = createSerpentStone();
-                const x = (Math.random() - 0.5) * treeSpread * 0.82;
-                const z = (Math.random() - 0.5) * treeSpread * 0.82;
-                stone.position.set(x, 0, z);
-                stone.rotation.y = Math.random() * Math.PI * 2;
-                scene.add(stone);
-            }
-            
-            // Resize handler
-            const handleResize = () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            };
-            window.addEventListener('resize', handleResize);
-            
-            console.log('%c3D HORROR SNAKE - ULTRA SMOOTH Edition Ready', 'color:#00ff88; font-family:monospace');
-        }
-
-        // Initialize snake using currently selected type
-        function initSnake() {
-            snakeMeshes.forEach(m => scene.remove(m));
-            snakeMeshes = [];
-            snakeGridPositions = [];
-            
-            const startX = Math.floor(CONFIG.GRID_SIZE / 2);
-            const startZ = Math.floor(CONFIG.GRID_SIZE / 2);
-            
-            for (let i = 0; i < CONFIG.INITIAL_LENGTH; i++) {
-                const gridPos = new THREE.Vector3(startX - i, 0, startZ);
-                snakeGridPositions.push(gridPos);
-                
-                const isHead = (i === 0);
-                const segment = createSegmentMesh(isHead, selectedSnakeType);
-                segment.position.copy(gridToWorld(gridPos));
-                scene.add(segment);
-                snakeMeshes.push(segment);
-            }
-            
-            previousSnakeGrid = snakeGridPositions.map(pos => pos.clone());
-            direction = new THREE.Vector3(1, 0, 0);
-            pendingDirection = null;
-        }
-
-        // Spawn food
-        function spawnFood() {
-            if (foodMesh) scene.remove(foodMesh);
-            
-            let pos;
-            let attempts = 0;
-            do {
-                pos = new THREE.Vector3(
-                    Math.floor(Math.random() * CONFIG.GRID_SIZE),
-                    0,
-                    Math.floor(Math.random() * CONFIG.GRID_SIZE)
-                );
-                attempts++;
-            } while (
-                attempts < 100 &&
-                snakeGridPositions.some(s => s.x === pos.x && s.z === pos.z)
-            );
-            
-            foodGrid = pos;
-            
-            foodMesh = new THREE.Mesh(
-                new THREE.IcosahedronGeometry(CONFIG.CELL_SIZE * 0.45, 1),
-                new THREE.MeshStandardMaterial({
-                    color: 0xff1122,
-                    emissive: 0xff0000,
-                    emissiveIntensity: 1.6,
-                    roughness: 0.2
-                })
-            );
-            foodMesh.position.copy(gridToWorld(foodGrid));
-            foodMesh.castShadow = true;
-            scene.add(foodMesh);
-        }
-
-        // Core move logic (length counter removed)
-        function moveSnake() {
-            if (gameOver || paused) return;
-            
-            if (pendingDirection) {
-                if (!pendingDirection.clone().multiplyScalar(-1).equals(direction)) {
-                    direction.copy(pendingDirection);
-                }
-                pendingDirection = null;
-            }
-            
-            const oldGrid = snakeGridPositions.map(pos => pos.clone());
-            
-            const head = snakeGridPositions[0];
-            const newHead = head.clone().add(direction);
-            
-            const outOfBounds = 
-                newHead.x < 0 || newHead.x >= CONFIG.GRID_SIZE ||
-                newHead.z < 0 || newHead.z >= CONFIG.GRID_SIZE;
-            
-            const selfCollision = snakeGridPositions.some(pos => 
-                pos.x === newHead.x && pos.z === newHead.z
-            );
-            
-            if (outOfBounds || selfCollision) {
-                triggerGameOver();
-                return;
-            }
-            
-            snakeGridPositions.unshift(newHead);
-            
-            const ate = foodGrid && newHead.x === foodGrid.x && newHead.z === foodGrid.z;
-            
-            if (ate) {
-                score++;
-                document.getElementById('score').textContent = score;
-                triggerJumpScare();
-                spawnFood();
-                
-                // Progressive speed increase
-                if (score % 5 === 0) {
-                    MOVE_INTERVAL = Math.max(82, MOVE_INTERVAL - 16);
-                }
-            } else {
-                snakeGridPositions.pop();
-            }
-            
-            // Add missing meshes (snake still grows)
-            while (snakeMeshes.length < snakeGridPositions.length) {
-                const tailGrid = snakeGridPositions[snakeGridPositions.length - 1];
-                const newSegment = createSegmentMesh(false, selectedSnakeType);
-                newSegment.position.copy(gridToWorld(tailGrid));
-                scene.add(newSegment);
-                snakeMeshes.push(newSegment);
-            }
-            
-            previousSnakeGrid = oldGrid;
-            if (snakeGridPositions.length > previousSnakeGrid.length) {
-                previousSnakeGrid.push(previousSnakeGrid[previousSnakeGrid.length - 1].clone());
-            }
-        }
-
-        // Jump-scare on eat
-        function triggerJumpScare() {
-            const flashEl = document.getElementById('flash');
-            flashEl.style.transition = 'none';
-            flashEl.style.opacity = '0.78';
-            setTimeout(() => {
-                flashEl.style.transition = 'opacity 110ms ease-out';
-                flashEl.style.opacity = '0';
-            }, 8);
-            
-            shakeIntensity = 2.0;
-            shakeDecay = 0.11;
-            
-            dirLight.intensity = 3.0;
-            setTimeout(() => { if (!gameOver && !paused) dirLight.intensity = 1.3; }, 75);
-            
-            if (snakeMeshes[0]) {
-                snakeMeshes[0].scale.set(1.42, 1.42, 1.42);
-                setTimeout(() => {
-                    if (snakeMeshes[0]) snakeMeshes[0].scale.set(1, 1, 1);
-                }, 110);
-            }
-        }
-
-        // Game over
-        function triggerGameOver() {
-            gameOver = true;
-            const go = document.getElementById('gameOver');
-            go.style.display = 'block';
-            document.getElementById('finalScoreDisplay').textContent = `FINAL SCORE: ${score}`;
-            
-            scene.fog.color.setHex(0x330000);
-            camera.position.y += 8;
-            camera.lookAt(0, -5, 0);
-            
-            snakeMeshes.forEach((mesh) => {
-                if (mesh.material) {
-                    mesh.material.emissive = new THREE.Color(0xff0000);
-                    mesh.material.emissiveIntensity = 2.8;
-                }
-            });
-            
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('horrorSnakeHighScore', highScore);
-                document.getElementById('highScore').textContent = highScore;
-            }
-        }
-
-        // Keyboard controls
-        function setupControls() {
-            document.addEventListener('keydown', (e) => {
-                if (gameOver) {
-                    if (e.key.toLowerCase() === 'r') {
-                        resetGame();
-                        e.preventDefault();
-                    }
-                    return;
-                }
-                
-                // Pause
-                if (e.key.toLowerCase() === 'p') {
-                    paused = !paused;
-                    document.getElementById('pause').style.display = paused ? 'block' : 'none';
-                    e.preventDefault();
-                    return;
-                }
-                
-                let newDir = null;
-                
-                switch (e.key) {
-                    case 'ArrowLeft':
-                    case 'a':
-                    case 'A':
-                        newDir = new THREE.Vector3(-1, 0, 0);
-                        break;
-                    case 'ArrowRight':
-                    case 'd':
-                    case 'D':
-                        newDir = new THREE.Vector3(1, 0, 0);
-                        break;
-                    case 'ArrowUp':
-                    case 'w':
-                    case 'W':
-                        newDir = new THREE.Vector3(0, 0, -1);
-                        break;
-                    case 'ArrowDown':
-                    case 's':
-                    case 'S':
-                        newDir = new THREE.Vector3(0, 0, 1);
-                        break;
-                }
-                
-                if (newDir) {
-                    pendingDirection = newDir;
-                    e.preventDefault();
-                }
-            });
-        }
-
-        // Reset game (keeps selected snake type)
-        function resetGame() {
-            gameOver = false;
-            paused = false;
-            score = 0;
-            MOVE_INTERVAL = 200;
-            
-            document.getElementById('score').textContent = '0';
-            document.getElementById('gameOver').style.display = 'none';
-            document.getElementById('pause').style.display = 'none';
-            scene.fog.color.setHex(CONFIG.FOG_COLOR);
-            
-            initSnake();
-            spawnFood();
-            lastMoveTime = Date.now();
-            
-            camera.position.set(0, 38, 45);
-            camera.lookAt(0, 0, 0);
-        }
-
-        // Main animation loop
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            const time = clock.getElapsedTime();
-            const currentTime = Date.now();
-            
-            if (!gameOver && !paused && currentTime - lastMoveTime > MOVE_INTERVAL) {
-                moveSnake();
-                lastMoveTime = currentTime;
-            }
-            
-            const progress = Math.min((currentTime - lastMoveTime) / MOVE_INTERVAL, 1);
-            
-            // Ultra-smooth snake interpolation
-            for (let i = 0; i < snakeMeshes.length; i++) {
-                if (!previousSnakeGrid[i] || !snakeGridPositions[i]) continue;
-                
-                const from = gridToWorld(previousSnakeGrid[i]);
-                const to = gridToWorld(snakeGridPositions[i]);
-                
-                const lerpedPos = from.clone().lerp(to, progress);
-                snakeMeshes[i].position.copy(lerpedPos);
-                
-                if (i === 0 && snakeMeshes[0]) {
-                    snakeMeshes[0].rotation.y = Math.atan2(direction.x, direction.z);
-                } else if (i > 0 && snakeGridPositions[i-1] && snakeGridPositions[i]) {
-                    const dir = snakeGridPositions[i-1].clone().sub(snakeGridPositions[i]).normalize();
-                    const angle = Math.atan2(dir.x, dir.z);
-                    snakeMeshes[i].rotation.y = angle;
+            // Vertical swipe
+            if (Math.abs(deltaY) > 60) {
+                if (deltaY < -60 && playerJump === 0) { // swipe up = jump
+                    playerVel = -19;
+                } else if (deltaY > 60) { // swipe down = slide
+                    isSliding = true;
+                    slideTimer = 28;
                 }
             }
-            
-            if (foodMesh) {
-                foodMesh.rotation.y = time * 2.8;
-                const pulse = 1 + Math.sin(time * 9) * 0.18;
-                foodMesh.scale.setScalar(pulse);
-            }
-            
-            dirLight.intensity = 1.3 + Math.sin(time * 14) * 0.25;
-            
-            eyeMeshes.forEach((eye, i) => {
-                const scale = 1 + Math.sin(time * 6.5 + i) * 0.16;
-                eye.scale.setScalar(scale);
-            });
-            
-            if (shakeIntensity > 0) {
-                camera.position.x += (Math.random() - 0.5) * shakeIntensity * 1.1;
-                camera.position.y += (Math.random() - 0.5) * shakeIntensity * 0.65;
-                camera.position.z += (Math.random() - 0.5) * shakeIntensity * 0.45;
-                shakeIntensity *= (1 - shakeDecay);
-                if (shakeIntensity < 0.04) shakeIntensity = 0;
-            }
-            
-            renderer.render(scene, camera);
-        }
-
-        // Start the actual game (called after snake selection)
+        });
+        
         function startGame() {
-            initScene();
-            initSnake();
-            spawnFood();
-            setupControls();
-            lastMoveTime = Date.now();
-            
-            document.getElementById('highScore').textContent = highScore;
-            
-            animate();
-            
-            console.log('%c✅ 3D HORROR SNAKE - Selected: ' + SNAKE_TYPES[selectedSnakeType].name + ' | Fully playable', 'color:#00ff88; background:#110022; padding:2px 8px');
+            gameState = 'playing';
+            score = 0;
+            mangoes = 0;
+            speed = 6;
+            frame = 0;
+            playerLane = 1;
+            playerJump = 0;
+            playerVel = 0;
+            isSliding = false;
+            slideTimer = 0;
+            obstacles = [];
+            collectibles = [];
+            document.getElementById('instructions').style.opacity = '0.3';
         }
-
-        // Snake selection handler
-        window.chooseSnake = function(type) {
-            selectedSnakeType = type;
-            document.getElementById('snakeSelect').style.display = 'none';
-            startGame();
-        };
-
-        // Game starts only after player chooses a serpent
-        console.log('%c3D HORROR SNAKE ready - choose your serpent to begin', 'color:#ff8800; font-family:monospace');
+        
+        function spawnObstacle() {
+            const lane = Math.floor(Math.random() * 3);
+            const types = ['cow', 'rickshaw', 'branch'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            
+            obstacles.push({
+                lane: lane,
+                y: -80, // distance from horizon
+                type: type
+            });
+        }
+        
+        function spawnCollectible() {
+            const lane = Math.floor(Math.random() * 3);
+            collectibles.push({
+                lane: lane,
+                y: -80,
+                type: 'mango'
+            });
+        }
+        
+        function update() {
+            if (gameState !== 'playing') return;
+            
+            frame++;
+            score = Math.floor(frame * 0.35 + mangoes * 12);
+            
+            // Gradually increase difficulty
+            if (frame % 65 === 0 && speed < 13) speed += 0.4;
+            
+            // Controls (keyboard)
+            if ((keys['ArrowLeft'] || keys['a'] || keys['A']) && frame % 4 === 0) {
+                if (playerLane > 0) playerLane--;
+                keys['ArrowLeft'] = keys['a'] = keys['A'] = false;
+            }
+            if ((keys['ArrowRight'] || keys['d'] || keys['D']) && frame % 4 === 0) {
+                if (playerLane < 2) playerLane++;
+                keys['ArrowRight'] = keys['d'] = keys['D'] = false;
+            }
+            if ((keys['ArrowUp'] || keys['w'] || keys['W'] || keys[' ']) && playerJump === 0) {
+                playerVel = -19;
+                keys['ArrowUp'] = keys['w'] = keys['W'] = keys[' '] = false;
+            }
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+                isSliding = true;
+                slideTimer = 28;
+                keys['ArrowDown'] = keys['s'] = keys['S'] = false;
+            }
+            
+            // Jump physics
+            if (playerJump > 0 || playerVel !== 0) {
+                playerJump += playerVel;
+                playerVel += 1.05; // gravity
+                if (playerJump >= 0) {
+                    playerJump = 0;
+                    playerVel = 0;
+                }
+            }
+            
+            // Slide timer
+            if (isSliding) {
+                slideTimer--;
+                if (slideTimer <= 0) isSliding = false;
+            }
+            
+            // Spawn logic
+            if (Math.random() < 0.045 + speed * 0.003) spawnObstacle();
+            if (Math.random() < 0.028) spawnCollectible();
+            
+            // Move everything forward
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].y += speed;
+                if (obstacles[i].y > 520) obstacles.splice(i, 1);
+            }
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                collectibles[i].y += speed;
+                if (collectibles[i].y > 520) collectibles.splice(i, 1);
+            }
+            
+            // Collision & collection
+            const px = laneX[playerLane];
+            const playerBaseY = 310;
+            
+            // Obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const o = obstacles[i];
+                const screenY = 110 + (o.y * 0.72);
+                
+                // Collision zone
+                if (screenY > 265 && screenY < 375 && o.lane === playerLane) {
+                    const isJumpingHigh = playerJump < -25;
+                    
+                    if (o.type === 'branch') {
+                        if (!isSliding) {
+                            gameState = 'over';
+                            if (score > highScore) {
+                                highScore = score;
+                                localStorage.setItem('banglaRunHS', Math.floor(highScore));
+                            }
+                        }
+                    } else {
+                        // cow or rickshaw
+                        if (!isJumpingHigh) {
+                            gameState = 'over';
+                            if (score > highScore) {
+                                highScore = score;
+                                localStorage.setItem('banglaRunHS', Math.floor(highScore));
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Collectibles
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                const c = collectibles[i];
+                const screenY = 110 + (c.y * 0.72);
+                
+                if (screenY > 265 && screenY < 375 && c.lane === playerLane) {
+                    mangoes++;
+                    collectibles.splice(i, 1);
+                }
+            }
+            
+            // Update UI
+            document.getElementById('score').textContent = Math.floor(score);
+            document.getElementById('mangoCount').textContent = mangoes;
+        }
+        
+        function drawBackground() {
+            // Sky with BD flag colors gradient
+            const sky = ctx.createLinearGradient(0, 0, 0, 260);
+            sky.addColorStop(0, '#87CEEB');
+            sky.addColorStop(1, '#E0F7FA');
+            ctx.fillStyle = sky;
+            ctx.fillRect(0, 0, WIDTH, 260);
+            
+            // Sun
+            ctx.fillStyle = '#FFCC00';
+            ctx.beginPath();
+            ctx.arc(680, 75, 38, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255, 204, 0, 0.3)';
+            ctx.beginPath();
+            ctx.arc(680, 75, 52, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Distant paddy fields / hills
+            ctx.fillStyle = '#006400';
+            ctx.beginPath();
+            ctx.moveTo(0, 260);
+            ctx.quadraticCurveTo(140, 195, 340, 260);
+            ctx.quadraticCurveTo(510, 185, 680, 260);
+            ctx.quadraticCurveTo(820, 210, 820, 260);
+            ctx.fill();
+            
+            // Road (earthy Bangladeshi village road)
+            ctx.fillStyle = '#C19A6B';
+            ctx.fillRect(0, 260, WIDTH, HEIGHT - 260);
+            
+            // Road borders (green grass)
+            ctx.fillStyle = '#008000';
+            ctx.fillRect(0, 260, 165, HEIGHT - 260);
+            ctx.fillRect(WIDTH - 165, 260, 165, HEIGHT - 260);
+            
+            // White dashed lane lines (scrolling)
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 9;
+            ctx.setLineDash([38, 38]);
+            const dashOffset = (frame * speed * 1.8) % 76;
+            ctx.lineDashOffset = -dashOffset;
+            
+            ctx.beginPath();
+            ctx.moveTo(laneX[0] + 88, 260);
+            ctx.lineTo(laneX[0] + 88, HEIGHT);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(laneX[1] + 88, 260);
+            ctx.lineTo(laneX[1] + 88, HEIGHT);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Palm trees on both sides (parallax scrolling)
+            bgOffset = (bgOffset + speed * 0.65) % 920;
+            
+            // Left side palms
+            ctx.fillStyle = '#8B4513';
+            for (let i = 0; i < 5; i++) {
+                const x = ((i * 195) + bgOffset) % 1100 - 140;
+                // trunk
+                ctx.fillRect(x + 18, 205, 14, 90);
+                // leaves
+                ctx.fillStyle = '#006400';
+                ctx.beginPath();
+                ctx.ellipse(x + 25, 205, 42, 22, Math.PI * -0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(x + 25, 195, 42, 22, Math.PI * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#8B4513';
+            }
+            
+            // Right side palms (different offset for depth)
+            for (let i = 0; i < 5; i++) {
+                const x = ((i * 195) + bgOffset * 1.3 + 380) % 1100 - 90;
+                ctx.fillRect(x + 18, 205, 14, 90);
+                ctx.fillStyle = '#006400';
+                ctx.beginPath();
+                ctx.ellipse(x + 25, 205, 42, 22, Math.PI * -0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(x + 25, 195, 42, 22, Math.PI * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#8B4513';
+            }
+            
+            // Some rickshaw art in far background (tiny)
+            ctx.fillStyle = 'rgba(255,69,0,0.15)';
+            for (let i = 0; i < 3; i++) {
+                const rx = ((i * 310) + bgOffset * 0.4) % 1300 - 200;
+                ctx.fillRect(rx, 235, 38, 18);
+                ctx.fillRect(rx - 8, 225, 54, 12);
+            }
+        }
+        
+        function drawPlayer() {
+            const x = laneX[playerLane];
+            const baseY = 315 - playerJump;
+            
+            // Torso (orange gamcha style)
+            ctx.fillStyle = '#FF4500';
+            ctx.fillRect(x - 19, baseY - 62, 38, 44);
+            
+            // Lungi (green traditional)
+            ctx.fillStyle = '#006400';
+            if (isSliding) {
+                ctx.fillRect(x - 27, baseY - 24, 54, 26);
+            } else {
+                ctx.fillRect(x - 19, baseY - 24, 38, 32);
+            }
+            
+            // Head
+            ctx.fillStyle = '#F4C38A';
+            ctx.beginPath();
+            ctx.arc(x, baseY - 73, 17, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Topi / hair
+            ctx.fillStyle = '#222';
+            ctx.fillRect(x - 18, baseY - 88, 36, 13);
+            
+            // Eyes
+            ctx.fillStyle = '#111';
+            ctx.fillRect(x - 9, baseY - 78, 6, 6);
+            ctx.fillRect(x + 3, baseY - 78, 6, 6);
+            
+            // Running arms
+            ctx.strokeStyle = '#F4C38A';
+            ctx.lineWidth = 9;
+            const armSwing = Math.sin(frame / 3) * 9;
+            ctx.beginPath();
+            ctx.moveTo(x - 19, baseY - 45);
+            ctx.lineTo(x - 33, baseY - 28 + armSwing);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + 19, baseY - 45);
+            ctx.lineTo(x + 33, baseY - 28 - armSwing);
+            ctx.stroke();
+            
+            // Legs
+            ctx.strokeStyle = '#006400';
+            ctx.lineWidth = 9;
+            const legSwing = isSliding ? 0 : Math.sin(frame / 2.2) * 14;
+            
+            if (isSliding) {
+                // Slide pose
+                ctx.fillStyle = '#006400';
+                ctx.fillRect(x - 30, baseY - 12, 60, 18);
+                ctx.fillStyle = '#F4C38A';
+                ctx.fillRect(x - 32, baseY + 4, 18, 12);
+                ctx.fillRect(x + 14, baseY + 4, 18, 12);
+            } else {
+                // Normal run
+                ctx.beginPath();
+                ctx.moveTo(x - 9, baseY - 18);
+                ctx.lineTo(x - 18 + legSwing, baseY + 22);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(x + 9, baseY - 18);
+                ctx.lineTo(x + 18 - legSwing, baseY + 22);
+                ctx.stroke();
+            }
+        }
+        
+        function drawObstaclesAndCollectibles() {
+            // Obstacles
+            for (let i = 0; i < obstacles.length; i++) {
+                const o = obstacles[i];
+                const sy = 110 + o.y * 0.72;
+                const size = 26 + (o.y * 0.09);
+                const x = laneX[o.lane];
+                
+                if (sy < 60 || sy > HEIGHT + 20) continue;
+                
+                if (o.type === 'cow') {
+                    // Cow
+                    ctx.fillStyle = '#F5F5F5';
+                    ctx.fillRect(x - size * 0.9, sy - size * 0.6, size * 1.9, size * 0.95);
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(x + size * 0.6, sy - size * 0.65, size * 0.7, size * 0.6); // head
+                    // legs
+                    ctx.fillRect(x - size * 0.7, sy + size * 0.3, 9, size * 0.6);
+                    ctx.fillRect(x - size * 0.2, sy + size * 0.3, 9, size * 0.6);
+                    ctx.fillRect(x + size * 0.3, sy + size * 0.3, 9, size * 0.6);
+                    ctx.fillRect(x + size * 0.8, sy + size * 0.3, 9, size * 0.6);
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(x + size * 0.9, sy - size * 0.4, 10, 10); // ear
+                } 
+                else if (o.type === 'rickshaw') {
+                    // Rickshaw
+                    ctx.fillStyle = '#FF4500';
+                    ctx.fillRect(x - size * 1.1, sy - size * 0.5, size * 2.1, size * 0.7);
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillRect(x - size * 1.3, sy - size * 0.9, size * 2.6, 18); // roof
+                    // wheels
+                    ctx.fillStyle = '#222';
+                    ctx.beginPath();
+                    ctx.arc(x - size * 0.6, sy + size * 0.4, size * 0.38, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x + size * 0.6, sy + size * 0.4, size * 0.38, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ddd';
+                    ctx.beginPath();
+                    ctx.arc(x - size * 0.6, sy + size * 0.4, size * 0.15, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x + size * 0.6, sy + size * 0.4, size * 0.15, 0, Math.PI * 2);
+                    ctx.fill();
+                } 
+                else if (o.type === 'branch') {
+                    // Low hanging branch
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(x - size * 1.4, sy - 14, size * 2.8, 22);
+                    ctx.fillStyle = '#228B22';
+                    ctx.fillRect(x - size * 1.5, sy - 34, size * 0.9, 24);
+                    ctx.fillRect(x + size * 0.6, sy - 34, size * 0.9, 24);
+                }
+            }
+            
+            // Mangoes
+            for (let i = 0; i < collectibles.length; i++) {
+                const c = collectibles[i];
+                const sy = 110 + c.y * 0.72;
+                const x = laneX[c.lane];
+                const size = 22 + (c.y * 0.08);
+                
+                if (sy < 60 || sy > HEIGHT) continue;
+                
+                // Mango body
+                ctx.fillStyle = '#FFCC00';
+                ctx.beginPath();
+                ctx.ellipse(x, sy, size * 0.85, size * 1.15, 0.6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Highlight
+                ctx.fillStyle = '#FFEE99';
+                ctx.beginPath();
+                ctx.ellipse(x - 6, sy - 4, size * 0.4, size * 0.6, 0.8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Leaf
+                ctx.fillStyle = '#006400';
+                ctx.beginPath();
+                ctx.ellipse(x + size * 0.7, sy - size * 0.9, size * 0.65, size * 0.35, -1.2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Text emoji
+                ctx.font = `${size + 4}px Arial`;
+                ctx.fillText('🥭', x - size * 0.6, sy + size * 0.4);
+            }
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+            
+            drawBackground();
+            
+            if (gameState === 'playing') {
+                drawObstaclesAndCollectibles();
+                drawPlayer();
+            }
+            
+            // Start screen
+            if (gameState === 'start') {
+                ctx.fillStyle = 'rgba(0, 100, 0, 0.85)';
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+                
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 68px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('BANGLA RUN', WIDTH / 2, 165);
+                
+                ctx.fillStyle = '#FF0000';
+                ctx.font = '28px Inter';
+                ctx.fillText('🇧🇩 গ্রামের রাস্তায় অনন্ত দৌড় 🇧🇩', WIDTH / 2, 215);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '24px Inter';
+                ctx.fillText('SPACE বা TAP করে শুরু করুন', WIDTH / 2, 285);
+                
+                ctx.font = '19px Inter';
+                ctx.fillText('রিকশা • গরু • ম্যাঙ্গো • পাম গাছ', WIDTH / 2, 325);
+                ctx.fillText('বাংলাদেশের ভাইবস দিয়ে তৈরি!', WIDTH / 2, 355);
+                
+                // Small high score
+                ctx.fillStyle = '#FFD700';
+                ctx.font = '18px Inter';
+                ctx.fillText(`HIGH SCORE: ${highScore}`, WIDTH / 2, 410);
+            }
+            
+            // Game Over screen
+            if (gameState === 'over') {
+                ctx.fillStyle = 'rgba(178, 0, 0, 0.92)';
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+                
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 62px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', WIDTH / 2, 155);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '32px Inter';
+                ctx.fillText(`দূরত্ব: ${Math.floor(score)} মিটার`, WIDTH / 2, 225);
+                ctx.fillText(`🥭 ম্যাঙ্গো: ${mangoes}`, WIDTH / 2, 265);
+                
+                if (score >= highScore) {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillText('🎉 নতুন রেকর্ড! 🎉', WIDTH / 2, 310);
+                }
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '26px Inter';
+                ctx.fillText(`BEST: ${highScore}`, WIDTH / 2, 355);
+                ctx.fillText('R চাপুন আবার খেলতে', WIDTH / 2, 410);
+            }
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Boot the game
+        gameLoop();
+        
+        console.log('%c✅ Bangla Run loaded! Enjoy your Bangladeshi Temple Run adventure 🇧🇩', 'color:#FFD700; font-size:16px; font-weight:bold');
     </script>
 </body>
 </html>
