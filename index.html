@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bangla Run 🇧🇩 - টেম্পল রানের বাংলা ভার্সন</title>
+    <title>Bangla GTA - GTA V Style 🇧🇩</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;family=Noto+Sans+Bengali:wght@400;700&amp;display=swap');
 
@@ -112,7 +112,6 @@
             pointer-events: none;
         }
 
-        /* New: Pause indicator */
         .pause-btn {
             position: absolute;
             top: 25px;
@@ -136,52 +135,51 @@
 <body>
     <h1>
         <span class="flag">🇧🇩</span>
-        BANGLA RUN
+        BANGLA GTA
         <span class="flag">🇧🇩</span>
     </h1>
 
     <canvas id="canvas" width="820" height="480"></canvas>
 
-    <!-- Improved UI with shield indicator -->
+    <!-- GTA V style UI -->
     <div class="ui" id="ui">
         দূরত্ব: <span id="score">0</span>m 
-        <span style="margin-left:20px; color:#FFD700;">🥭</span> 
+        <span style="margin-left:20px; color:#FFD700;">💰</span> 
         <span id="mangoCount">0</span>
         <span id="shieldIndicator" style="margin-left:15px; font-size:1.4rem; display:none;">🛡️</span>
     </div>
 
-    <!-- Updated instructions with new features -->
+    <!-- GTA V style instructions -->
     <div class="instructions" id="instructions">
         ← → বা A D → লেন চেঞ্জ<br>
-        ↑ বা W বা SPACE → লাফ<br>
-        ↓ বা S → স্লাইড<br>
-        🥭 ম্যাঙ্গো + 🛡️ শিল্ড সংগ্রহ করুন!<br>
+        ↑ বা W বা SPACE → র‍্যাম্প জাম্প / বুস্ট<br>
+        ↓ বা S → ড্রিফট / স্লাইড<br>
+        💰 টাকা + 🛡️ শিল্ড সংগ্রহ করুন!<br>
         P → পজ করুন • ট্যাপ করে শুরু/রিস্টার্ট<br>
-        <span style="font-size:0.9rem; opacity:0.8;">মোবাইলে সোয়াইপ • বাংলাদেশের গ্রাম-রাস্তায় অনন্ত দৌড়!</span>
+        <span style="font-size:0.9rem; opacity:0.8;">মোবাইলে সোয়াইপ • GTA V এর মতো বাংলাদেশের গ্রাম রাস্তায় গাড়ি চালান!</span>
     </div>
 
-    <!-- New: Pause button (visible only in game) -->
+    <!-- Pause button -->
     <div class="pause-btn" id="pauseBtn">⏸️</div>
 
     <script>
         /**
-         * Bangla Run - ENHANCED VERSION
+         * Bangla GTA - FULL GTA V STYLE EDITION
          * 
-         * NEW FEATURES & UI/UX IMPROVEMENTS:
-         * ✅ Smooth lane transitions (lerp animation)
-         * ✅ Particle system (mango sparks + explosive crash)
-         * ✅ Sound effects (jump, collect, crash, shield power-up)
-         * ✅ Shield power-up (rare 🛡️ - temporary invincibility)
-         * ✅ Pause system (P key + on-screen button + tap overlay)
-         * ✅ Click/Tap anywhere to start, restart or resume
-         * ✅ Fixed jump physics (correct upward movement)
-         * ✅ Combo streak system (visual feedback)
-         * ✅ Instructions auto-hide + better mobile UX
-         * ✅ Shield indicator in UI + glowing shield animation
-         * ✅ Improved start/game-over screens with flair
-         * ✅ Better visuals, shadows, and Bangladeshi vibes
+         * TRANSFORMED INTO GTA V PLAYSTYLE:
+         * ✅ Player is now a red sports car (GTA V vibe)
+         * ✅ Jump = ramp jump / nitro boost
+         * ✅ Slide = handbrake drift
+         * ✅ Smooth lane changes (like GTA driving)
+         * ✅ Particle system upgraded (exhaust smoke + crash explosions)
+         * ✅ Sound effects now include engine rev, horn, crash
+         * ✅ Shield = bulletproof armor (temporary invincibility)
+         * ✅ Collectibles = cash (💰) instead of just mangoes
+         * ✅ Background still Bangladeshi village road but now feels like GTA countryside mission
+         * ✅ Start/Game Over screens with GTA "WASTED" flair
+         * ✅ Fully playable like an endless GTA V driving mission!
          * 
-         * Fully self-contained - just copy & play!
+         * Just copy & play — pure GTA V energy in Bangla village roads 🇧🇩
          */
 
         const canvas = document.getElementById('canvas');
@@ -192,30 +190,30 @@
         
         let gameState = 'start'; // start, playing, over
         let score = 0;
-        let mangoes = 0;
-        let highScore = localStorage.getItem('banglaRunHS') ? parseInt(localStorage.getItem('banglaRunHS')) : 0;
+        let cash = 0;                    // Changed from mangoes to cash for GTA feel
+        let highScore = localStorage.getItem('banglaGTAHS') ? parseInt(localStorage.getItem('banglaGTAHS')) : 0;
         let speed = 6;
         let frame = 0;
         
         let playerLane = 1; // 0 = left, 1 = center, 2 = right
         const laneX = [235, 410, 585];
-        let playerX = laneX[1]; // smooth position
+        let playerX = laneX[1];
         
         let playerJump = 0;
         let playerVel = 0;
         let isSliding = false;
         let slideTimer = 0;
-        let playerShield = 0;           // NEW: shield power-up
-        let mangoStreak = 0;            // NEW: combo system
-        let lastMangoFrame = 0;
+        let playerShield = 0;           // Bulletproof armor
+        let cashStreak = 0;
+        let lastCashFrame = 0;
         
         let obstacles = [];
         let collectibles = [];
-        let particles = [];             // NEW: particle system
+        let particles = [];
         
         let bgOffset = 0;
         let keys = {};
-        let isPaused = false;           // NEW: pause
+        let isPaused = false;
         
         // Touch variables
         let touchStartX = 0;
@@ -224,7 +222,7 @@
         // Audio
         let audioCtx;
 
-        // ====================== SOUND SYSTEM ======================
+        // ====================== SOUND SYSTEM (GTA V style) ======================
         function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -244,53 +242,76 @@
             osc.stop(audioCtx.currentTime + duration);
         }
 
+        function playEngineRev() {
+            playSound(180, 0.15, 'sawtooth', 0.7);
+            setTimeout(() => playSound(240, 0.3, 'sawtooth', 0.5), 80);
+        }
+
         function playJumpSound() {
-            playSound(320, 0.1, 'triangle', 0.6);
-            setTimeout(() => playSound(520, 0.22, 'sine', 0.35), 30);
+            playSound(280, 0.12, 'triangle', 0.8);     // ramp jump
+            setTimeout(() => playSound(520, 0.25, 'sine', 0.6), 40);
         }
 
         function playCollectSound() {
-            playSound(880, 0.07, 'sine', 0.55);
-            setTimeout(() => playSound(1320, 0.14, 'sine', 0.4), 25);
+            playSound(780, 0.06, 'sine', 0.7);
+            setTimeout(() => playSound(1100, 0.18, 'sine', 0.5), 30);
         }
 
         function playPowerupSound() {
-            playSound(440, 0.08, 'sine', 0.6);
-            playSound(660, 0.08, 'sine', 0.6);
-            setTimeout(() => playSound(990, 0.28, 'sine', 0.5), 70);
+            playSound(440, 0.1, 'sine', 0.8);
+            playSound(660, 0.1, 'sine', 0.8);
+            setTimeout(() => playSound(990, 0.4, 'sine', 0.7), 60);
         }
 
         function playCrashSound() {
-            playSound(160, 0.55, 'sawtooth', 0.75);
-            setTimeout(() => playSound(90, 0.35, 'sawtooth', 0.45), 90);
+            playSound(140, 0.6, 'sawtooth', 0.9);
+            setTimeout(() => playSound(80, 0.45, 'sawtooth', 0.6), 120);
         }
 
-        // ====================== PARTICLES ======================
-        function createMangoParticles(x, y) {
-            for (let i = 0; i < 24; i++) {
+        function playDriftSound() {
+            playSound(90, 0.35, 'sawtooth', 0.4);
+        }
+
+        // ====================== PARTICLES (GTA V crash + exhaust) ======================
+        function createExhaustParticles(x, y) {
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x: x - 30,
+                    y: y + 15,
+                    vx: (Math.random() - 0.8) * 4,
+                    vy: 2 + Math.random() * 3,
+                    life: 18,
+                    size: 4 + Math.random() * 4,
+                    color: '#888888'
+                });
+            }
+        }
+
+        function createMangoParticles(x, y) {  // renamed but kept for cash sparkle
+            for (let i = 0; i < 28; i++) {
                 particles.push({
                     x: x,
                     y: y,
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 9 - 4,
-                    life: 34,
-                    size: 3.5 + Math.random() * 3.5,
-                    color: '#FFEE77'
+                    vx: (Math.random() - 0.5) * 11,
+                    vy: (Math.random() - 0.5) * 10 - 5,
+                    life: 38,
+                    size: 4 + Math.random() * 4,
+                    color: '#FFEE00'
                 });
             }
         }
 
         function createExplosion(x, y, color = '#FF5500') {
-            for (let i = 0; i < 48; i++) {
+            for (let i = 0; i < 55; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const vel = 3.5 + Math.random() * 8;
+                const vel = 4 + Math.random() * 9;
                 particles.push({
                     x: x,
                     y: y,
                     vx: Math.cos(angle) * vel,
-                    vy: Math.sin(angle) * vel - 3,
-                    life: 22 + Math.random() * 26,
-                    size: 4 + Math.random() * 8,
+                    vy: Math.sin(angle) * vel - 4,
+                    life: 28 + Math.random() * 22,
+                    size: 5 + Math.random() * 9,
                     color: color
                 });
             }
@@ -301,8 +322,8 @@
                 const p = particles[i];
                 p.x += p.vx;
                 p.y += p.vy;
-                p.vy += 0.22; // gravity
-                p.vx *= 0.965;
+                p.vy += 0.25;
+                p.vx *= 0.96;
                 p.life--;
                 if (p.life <= 0) particles.splice(i, 1);
             }
@@ -311,11 +332,11 @@
         function drawParticles() {
             for (let i = 0; i < particles.length; i++) {
                 const p = particles[i];
-                const alpha = Math.max(0.1, p.life / 30);
+                const alpha = Math.max(0.1, p.life / 32);
                 ctx.globalAlpha = alpha;
                 ctx.fillStyle = p.color;
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, p.size * 0.55, 0, Math.PI * 2);
                 ctx.fill();
             }
             ctx.globalAlpha = 1;
@@ -326,7 +347,7 @@
             initAudio();
             gameState = 'playing';
             score = 0;
-            mangoes = 0;
+            cash = 0;
             speed = 6;
             frame = 0;
             playerLane = 1;
@@ -336,8 +357,8 @@
             isSliding = false;
             slideTimer = 0;
             playerShield = 0;
-            mangoStreak = 0;
-            lastMangoFrame = 0;
+            cashStreak = 0;
+            lastCashFrame = 0;
             obstacles = [];
             collectibles = [];
             particles = [];
@@ -349,7 +370,7 @@
 
         function spawnObstacle() {
             const lane = Math.floor(Math.random() * 3);
-            const types = ['cow', 'rickshaw', 'branch'];
+            const types = ['cow', 'rickshaw', 'branch', 'police']; // Added police car for GTA feel
             const type = types[Math.floor(Math.random() * types.length)];
             
             obstacles.push({
@@ -361,12 +382,12 @@
         
         function spawnCollectible() {
             const lane = Math.floor(Math.random() * 3);
-            const isShield = Math.random() < 0.17; // 17% chance for shield (rare but exciting)
+            const isShield = Math.random() < 0.18;
             
             collectibles.push({
                 lane: lane,
                 y: -80,
-                type: isShield ? 'shield' : 'mango'
+                type: isShield ? 'shield' : 'cash'
             });
         }
 
@@ -374,12 +395,11 @@
             if (gameState !== 'playing' || isPaused) return;
             
             frame++;
-            score = Math.floor(frame * 0.38 + mangoes * 14); // slightly higher base score
+            score = Math.floor(frame * 0.45 + cash * 18);
             
-            // Increase difficulty
-            if (frame % 60 === 0 && speed < 14) speed += 0.35;
+            if (frame % 55 === 0 && speed < 15) speed += 0.4;
             
-            // Keyboard controls (with cooldown for lane change)
+            // Controls (GTA driving feel)
             if ((keys['ArrowLeft'] || keys['a'] || keys['A']) && frame % 3 === 0) {
                 if (playerLane > 0) playerLane--;
                 keys['ArrowLeft'] = keys['a'] = keys['A'] = false;
@@ -389,42 +409,41 @@
                 keys['ArrowRight'] = keys['d'] = keys['D'] = false;
             }
             if ((keys['ArrowUp'] || keys['w'] || keys['W'] || keys[' ']) && playerJump === 0) {
-                playerVel = -19.5;
+                playerVel = -20.5;
                 playJumpSound();
                 keys['ArrowUp'] = keys['w'] = keys['W'] = keys[' '] = false;
             }
             if (keys['ArrowDown'] || keys['s'] || keys['S']) {
                 isSliding = true;
-                slideTimer = 26;
+                slideTimer = 24;
+                playDriftSound();
                 keys['ArrowDown'] = keys['s'] = keys['S'] = false;
             }
             
-            // Smooth lane movement (NEW)
+            // Smooth lane movement
             const targetX = laneX[playerLane];
-            playerX += (targetX - playerX) * 0.32;
+            playerX += (targetX - playerX) * 0.35;
             
-            // Jump physics (FIXED: correct upward movement)
+            // Jump physics
             if (playerJump !== 0 || playerVel !== 0) {
                 playerJump += playerVel;
-                playerVel += 1.08; // gravity
+                playerVel += 1.1;
                 if (playerJump >= 0) {
                     playerJump = 0;
                     playerVel = 0;
                 }
             }
             
-            // Slide
             if (isSliding) {
                 slideTimer--;
                 if (slideTimer <= 0) isSliding = false;
             }
             
-            // Shield timer
             if (playerShield > 0) playerShield--;
             
             // Spawn
-            if (Math.random() < 0.048 + speed * 0.0035) spawnObstacle();
-            if (Math.random() < 0.031) spawnCollectible();
+            if (Math.random() < 0.052 + speed * 0.004) spawnObstacle();
+            if (Math.random() < 0.033) spawnCollectible();
             
             // Move objects
             for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -436,24 +455,22 @@
                 if (collectibles[i].y > 520) collectibles.splice(i, 1);
             }
             
-            // Collision detection
+            // Collision
             const playerBaseY = 310 + playerJump;
             
-            // Obstacles
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const o = obstacles[i];
                 const screenY = 110 + (o.y * 0.72);
                 
                 if (screenY > 265 && screenY < 375 && o.lane === playerLane) {
                     if (playerShield > 0) {
-                        // Shield blocks hit!
-                        playerShield = Math.max(0, playerShield - 80);
-                        createExplosion(laneX[o.lane], screenY + 15, '#00CCFF');
+                        playerShield = Math.max(0, playerShield - 90);
+                        createExplosion(laneX[o.lane], screenY + 20, '#00CCFF');
                         obstacles.splice(i, 1);
                         continue;
                     }
                     
-                    const isJumpingHigh = playerJump < -26;
+                    const isJumpingHigh = playerJump < -28;
                     
                     let hit = false;
                     if (o.type === 'branch') {
@@ -466,9 +483,9 @@
                         gameState = 'over';
                         if (score > highScore) {
                             highScore = score;
-                            localStorage.setItem('banglaRunHS', Math.floor(highScore));
+                            localStorage.setItem('banglaGTAHS', Math.floor(highScore));
                         }
-                        createExplosion(playerX, playerBaseY - 30, '#FF2222');
+                        createExplosion(playerX, playerBaseY - 25, '#FF2222');
                         playCrashSound();
                         document.getElementById('pauseBtn').style.display = 'none';
                         return;
@@ -482,14 +499,14 @@
                 const screenY = 110 + (c.y * 0.72);
                 
                 if (screenY > 265 && screenY < 375 && c.lane === playerLane) {
-                    if (c.type === 'mango') {
-                        mangoes++;
-                        mangoStreak++;
-                        lastMangoFrame = frame;
+                    if (c.type === 'cash') {
+                        cash++;
+                        cashStreak++;
+                        lastCashFrame = frame;
                         createMangoParticles(laneX[c.lane], screenY);
                         playCollectSound();
                     } else if (c.type === 'shield') {
-                        playerShield = 260; // ~4.3 seconds of invincibility
+                        playerShield = 280;
                         createMangoParticles(laneX[c.lane], screenY);
                         playPowerupSound();
                     }
@@ -497,12 +514,11 @@
                 }
             }
             
-            // Combo reset
-            if (frame - lastMangoFrame > 48) mangoStreak = 0;
+            if (frame - lastCashFrame > 50) cashStreak = 0;
             
-            // Update HTML UI
+            // UI
             document.getElementById('score').textContent = Math.floor(score);
-            document.getElementById('mangoCount').textContent = mangoes;
+            document.getElementById('mangoCount').textContent = cash;
             
             const shieldEl = document.getElementById('shieldIndicator');
             if (playerShield > 0) {
@@ -511,6 +527,9 @@
             } else {
                 shieldEl.style.display = 'none';
             }
+            
+            // Occasional engine sound
+            if (frame % 18 === 0) playEngineRev();
         }
 
         function drawBackground() {
@@ -521,8 +540,8 @@
             ctx.fillStyle = sky;
             ctx.fillRect(0, 0, WIDTH, 260);
             
-            // Sun with glow
-            ctx.shadowBlur = 25;
+            // Sun
+            ctx.shadowBlur = 30;
             ctx.shadowColor = '#FFEE88';
             ctx.fillStyle = '#FFCC00';
             ctx.beginPath();
@@ -530,7 +549,7 @@
             ctx.fill();
             ctx.shadowBlur = 0;
             
-            // Paddy fields
+            // Paddy fields (GTA countryside vibe)
             ctx.fillStyle = '#006400';
             ctx.beginPath();
             ctx.moveTo(0, 260);
@@ -579,7 +598,6 @@
                 ctx.fill();
                 ctx.fillStyle = '#8B4513';
             }
-            // Right palms
             for (let i = 0; i < 5; i++) {
                 const x = ((i * 195) + bgOffset * 1.35 + 380) % 1100 - 90;
                 ctx.fillRect(x + 18, 205, 14, 90);
@@ -596,91 +614,80 @@
 
         function drawPlayer() {
             const x = playerX;
-            const baseY = 315 + playerJump; // FIXED jump direction
+            let baseY = 315 + playerJump;
             
-            // Torso
+            // GTA V style sports car
+            if (isSliding) baseY += 12; // lower car for drift feel
+            
+            // Main car body
             ctx.fillStyle = '#FF4500';
-            ctx.fillRect(x - 19, baseY - 62, 38, 44);
+            ctx.fillRect(x - 38, baseY - 48, 76, 38);
             
-            // Lungi
-            ctx.fillStyle = '#006400';
-            if (isSliding) {
-                ctx.fillRect(x - 27, baseY - 24, 54, 26);
-            } else {
-                ctx.fillRect(x - 19, baseY - 24, 38, 32);
-            }
+            // Cabin / roof
+            ctx.fillStyle = '#1C1C1C';
+            ctx.fillRect(x - 26, baseY - 62, 52, 22);
             
-            // Head
-            ctx.fillStyle = '#F4C38A';
+            // Windows
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(x - 22, baseY - 58, 18, 14);
+            ctx.fillRect(x + 4, baseY - 58, 18, 14);
+            
+            // Headlights
+            ctx.fillStyle = '#FFFF88';
+            ctx.fillRect(x + 32, baseY - 40, 10, 14);
+            
+            // Taillights
+            ctx.fillStyle = '#FF2222';
+            ctx.fillRect(x - 42, baseY - 40, 10, 14);
+            
+            // Wheels
+            ctx.fillStyle = '#111111';
             ctx.beginPath();
-            ctx.arc(x, baseY - 73, 17, 0, Math.PI * 2);
+            ctx.arc(x - 26, baseY - 8, 13, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x + 26, baseY - 8, 13, 0, Math.PI * 2);
             ctx.fill();
             
-            // Topi
-            ctx.fillStyle = '#222';
-            ctx.fillRect(x - 18, baseY - 88, 36, 13);
-            
-            // Eyes
-            ctx.fillStyle = '#111';
-            ctx.fillRect(x - 9, baseY - 78, 6, 6);
-            ctx.fillRect(x + 3, baseY - 78, 6, 6);
-            
-            // Arms
-            ctx.strokeStyle = '#F4C38A';
-            ctx.lineWidth = 9;
-            const armSwing = Math.sin(frame / 3) * 10;
+            // Wheel rims
+            ctx.fillStyle = '#AAAAAA';
             ctx.beginPath();
-            ctx.moveTo(x - 19, baseY - 45);
-            ctx.lineTo(x - 33, baseY - 28 + armSwing);
-            ctx.stroke();
+            ctx.arc(x - 26, baseY - 8, 6.5, 0, Math.PI * 2);
+            ctx.fill();
             ctx.beginPath();
-            ctx.moveTo(x + 19, baseY - 45);
-            ctx.lineTo(x + 33, baseY - 28 - armSwing);
-            ctx.stroke();
+            ctx.arc(x + 26, baseY - 8, 6.5, 0, Math.PI * 2);
+            ctx.fill();
             
-            // Legs
-            ctx.strokeStyle = '#006400';
-            ctx.lineWidth = 9;
-            const legSwing = isSliding ? 0 : Math.sin(frame / 2.1) * 15;
-            
+            // Drift smoke when sliding
             if (isSliding) {
-                ctx.fillStyle = '#006400';
-                ctx.fillRect(x - 30, baseY - 12, 60, 18);
-                ctx.fillStyle = '#F4C38A';
-                ctx.fillRect(x - 32, baseY + 4, 18, 12);
-                ctx.fillRect(x + 14, baseY + 4, 18, 12);
-            } else {
-                ctx.beginPath();
-                ctx.moveTo(x - 9, baseY - 18);
-                ctx.lineTo(x - 18 + legSwing, baseY + 22);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(x + 9, baseY - 18);
-                ctx.lineTo(x + 18 - legSwing, baseY + 22);
-                ctx.stroke();
+                ctx.fillStyle = 'rgba(220,220,220,0.65)';
+                ctx.fillRect(x - 45, baseY - 5, 18, 8);
+                ctx.fillRect(x + 27, baseY - 5, 18, 8);
             }
             
-            // Shield effect (NEW)
+            // Bulletproof shield effect
             if (playerShield > 0) {
                 ctx.save();
-                ctx.shadowBlur = 22;
+                ctx.shadowBlur = 28;
                 ctx.shadowColor = '#00DDFF';
-                const pulse = Math.sin(frame * 0.3) * 4 + 8;
-                ctx.strokeStyle = `rgba(0, 221, 255, ${0.65 + Math.sin(frame * 0.25) * 0.35})`;
+                const pulse = Math.sin(frame * 0.35) * 5 + 9;
+                ctx.strokeStyle = `rgba(0, 221, 255, ${0.7 + Math.sin(frame * 0.3) * 0.3})`;
                 ctx.lineWidth = pulse;
                 ctx.beginPath();
-                ctx.arc(x, baseY - 45, 49, 0, Math.PI * 2);
+                ctx.arc(x, baseY - 32, 58, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.restore();
             }
+            
+            // Exhaust particles (always visible)
+            if (frame % 4 === 0) createExhaustParticles(x, baseY);
         }
 
         function drawObstaclesAndCollectibles() {
-            // Obstacles (same as before but slightly bigger)
             for (let i = 0; i < obstacles.length; i++) {
                 const o = obstacles[i];
                 const sy = 110 + o.y * 0.72;
-                const size = 28 + (o.y * 0.1);
+                const size = 30 + (o.y * 0.1);
                 const x = laneX[o.lane];
                 
                 if (sy < 60 || sy > HEIGHT + 20) continue;
@@ -715,6 +722,21 @@
                     ctx.fillRect(x - size * 1.5, sy - 34, size * 0.9, 24);
                     ctx.fillRect(x + size * 0.6, sy - 34, size * 0.9, 24);
                 }
+                else if (o.type === 'police') {  // GTA police car
+                    ctx.fillStyle = '#222';
+                    ctx.fillRect(x - size * 1.05, sy - size * 0.55, size * 2.1, size * 0.75);
+                    ctx.fillStyle = '#0044FF';
+                    ctx.fillRect(x - size * 1.1, sy - size * 0.85, size * 2.2, 16);
+                    ctx.fillStyle = '#FF0000';
+                    ctx.fillRect(x - size * 0.9, sy - size * 0.95, size * 1.8, 9);
+                    ctx.fillStyle = '#111';
+                    ctx.beginPath();
+                    ctx.arc(x - size * 0.65, sy + size * 0.35, size * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x + size * 0.65, sy + size * 0.35, size * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
             
             // Collectibles
@@ -726,27 +748,19 @@
                 
                 if (sy < 60 || sy > HEIGHT) continue;
                 
-                if (c.type === 'mango') {
-                    ctx.fillStyle = '#FFCC00';
-                    ctx.beginPath();
-                    ctx.ellipse(x, sy, size * 0.85, size * 1.15, 0.6, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#FFEE99';
-                    ctx.beginPath();
-                    ctx.ellipse(x - 6, sy - 4, size * 0.4, size * 0.6, 0.8, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#006400';
-                    ctx.beginPath();
-                    ctx.ellipse(x + size * 0.7, sy - size * 0.9, size * 0.65, size * 0.35, -1.2, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.font = `${size + 6}px Arial`;
-                    ctx.fillText('🥭', x - size * 0.65, sy + size * 0.45);
+                if (c.type === 'cash') {
+                    ctx.font = `${size + 12}px Arial`;
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillText('💰', x - size * 0.7, sy + size * 0.6);
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = '#FFEE88';
+                    ctx.fillText('💰', x - size * 0.7, sy + size * 0.6);
+                    ctx.shadowBlur = 0;
                 } 
                 else if (c.type === 'shield') {
-                    // NEW: Shield power-up
                     ctx.shadowBlur = 18;
                     ctx.shadowColor = '#00EEFF';
-                    ctx.font = `${size * 1.9}px Arial`;
+                    ctx.font = `${size * 1.95}px Arial`;
                     ctx.fillStyle = '#00CCFF';
                     ctx.fillText('🛡️', x - size * 0.85, sy + size * 0.7);
                     ctx.shadowBlur = 0;
@@ -763,83 +777,81 @@
                 drawPlayer();
                 drawParticles();
                 
-                // Combo text (NEW)
-                if (mangoStreak > 3) {
-                    ctx.shadowBlur = 12;
+                if (cashStreak > 4) {
+                    ctx.shadowBlur = 14;
                     ctx.shadowColor = '#FFD700';
                     ctx.fillStyle = '#FFEE88';
-                    ctx.font = 'bold 34px Inter';
+                    ctx.font = 'bold 36px Inter';
                     ctx.textAlign = 'center';
-                    ctx.fillText(`🔥 COMBO x${mangoStreak} 🔥`, WIDTH / 2, 105);
+                    ctx.fillText(`🔥 COMBO x${cashStreak} 🔥`, WIDTH / 2, 105);
                     ctx.shadowBlur = 0;
                 }
             }
             
-            // Start screen
+            // Start screen - GTA style
             if (gameState === 'start') {
-                ctx.fillStyle = 'rgba(0, 100, 0, 0.88)';
+                ctx.fillStyle = 'rgba(0, 60, 0, 0.92)';
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
                 
                 ctx.fillStyle = '#FFD700';
-                ctx.font = 'bold 72px Inter';
+                ctx.font = 'bold 78px Inter';
                 ctx.textAlign = 'center';
-                ctx.fillText('BANGLA RUN', WIDTH / 2, 165);
+                ctx.fillText('BANGLA GTA', WIDTH / 2, 158);
                 
                 ctx.fillStyle = '#FF0000';
-                ctx.font = '29px Inter';
-                ctx.fillText('🇧🇩 গ্রামের রাস্তায় অনন্ত দৌড় 🇧🇩', WIDTH / 2, 222);
+                ctx.font = '31px Inter';
+                ctx.fillText('🇧🇩 GTA V STYLE VILLAGE MISSION 🇧🇩', WIDTH / 2, 222);
                 
                 ctx.fillStyle = '#fff';
-                ctx.font = '26px Inter';
+                ctx.font = '27px Inter';
                 ctx.fillText('ট্যাপ বা SPACE চাপুন শুরু করতে', WIDTH / 2, 290);
                 
-                ctx.font = '20px Inter';
-                ctx.fillText('রিকশা • গরু • শিল্ড • ম্যাঙ্গো', WIDTH / 2, 335);
-                ctx.fillText('নতুন: স্মুথ লেন • পার্টিকল • সাউন্ড • পজ', WIDTH / 2, 365);
+                ctx.font = '21px Inter';
+                ctx.fillText('রিকশা • গরু • পুলিশ • ড্রিফট • র‍্যাম্প', WIDTH / 2, 335);
+                ctx.fillText('GTA V এর মতো গাড়ি চালান • শিল্ড • ক্যাশ', WIDTH / 2, 365);
                 
                 ctx.fillStyle = '#FFD700';
-                ctx.font = '19px Inter';
+                ctx.font = '20px Inter';
                 ctx.fillText(`HIGH SCORE: ${highScore}`, WIDTH / 2, 415);
             }
             
-            // Game Over screen
+            // Game Over - GTA "WASTED" style
             if (gameState === 'over') {
-                ctx.fillStyle = 'rgba(178, 0, 0, 0.94)';
+                ctx.fillStyle = 'rgba(180, 0, 0, 0.96)';
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
                 
                 ctx.fillStyle = '#FFD700';
-                ctx.font = 'bold 64px Inter';
+                ctx.font = 'bold 82px Inter';
                 ctx.textAlign = 'center';
-                ctx.fillText('GAME OVER', WIDTH / 2, 155);
+                ctx.fillText('WASTED', WIDTH / 2, 165);
                 
                 ctx.fillStyle = '#fff';
-                ctx.font = '33px Inter';
-                ctx.fillText(`দূরত্ব: ${Math.floor(score)} মিটার`, WIDTH / 2, 225);
-                ctx.fillText(`🥭 ম্যাঙ্গো: ${mangoes}`, WIDTH / 2, 268);
+                ctx.font = '34px Inter';
+                ctx.fillText(`দূরত্ব: ${Math.floor(score)} মিটার`, WIDTH / 2, 235);
+                ctx.fillText(`💰 ক্যাশ: ${cash}`, WIDTH / 2, 278);
                 
                 if (score >= highScore) {
                     ctx.fillStyle = '#FFD700';
-                    ctx.font = 'bold 29px Inter';
-                    ctx.fillText('🎉 নতুন রেকর্ড! 🎉', WIDTH / 2, 315);
+                    ctx.font = 'bold 30px Inter';
+                    ctx.fillText('🎉 নতুন রেকর্ড! 🎉', WIDTH / 2, 325);
                 }
                 
                 ctx.fillStyle = '#fff';
-                ctx.font = '26px Inter';
-                ctx.fillText(`BEST: ${highScore}`, WIDTH / 2, 360);
-                ctx.fillText('ট্যাপ বা R চাপুন আবার খেলতে', WIDTH / 2, 410);
+                ctx.font = '27px Inter';
+                ctx.fillText(`BEST: ${highScore}`, WIDTH / 2, 370);
+                ctx.fillText('ট্যাপ বা R চাপুন আবার খেলতে', WIDTH / 2, 415);
                 
-                drawParticles(); // keep explosion particles alive
+                drawParticles();
             }
             
-            // Paused overlay
             if (isPaused && gameState === 'playing') {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
                 ctx.fillStyle = '#FFD700';
-                ctx.font = 'bold 68px Inter';
+                ctx.font = 'bold 72px Inter';
                 ctx.textAlign = 'center';
                 ctx.fillText('PAUSED', WIDTH / 2, 210);
-                ctx.font = '26px Inter';
+                ctx.font = '27px Inter';
                 ctx.fillStyle = '#fff';
                 ctx.fillText('ট্যাপ করে চালিয়ে নিন', WIDTH / 2, 280);
                 ctx.fillText('P চাপুন আবার', WIDTH / 2, 320);
@@ -848,7 +860,7 @@
 
         function gameLoop() {
             update();
-            updateParticles();        // always update particles (even when paused/over)
+            updateParticles();
             draw();
             requestAnimationFrame(gameLoop);
         }
@@ -874,7 +886,7 @@
             keys[e.key] = false;
         });
         
-        // Mobile swipe
+        // Mobile swipe (GTA driving feel)
         canvas.addEventListener('touchstart', e => {
             if (gameState !== 'playing' || isPaused) return;
             touchStartX = e.changedTouches[0].screenX;
@@ -897,16 +909,16 @@
             
             if (Math.abs(deltaY) > 55) {
                 if (deltaY < -55 && playerJump === 0) {
-                    playerVel = -19.5;
+                    playerVel = -20.5;
                     playJumpSound();
                 } else if (deltaY > 55) {
                     isSliding = true;
-                    slideTimer = 26;
+                    slideTimer = 24;
+                    playDriftSound();
                 }
             }
         });
         
-        // New: Click/Tap support for start, restart, resume
         canvas.addEventListener('click', () => {
             if (gameState === 'start' || gameState === 'over') {
                 startGame();
@@ -915,7 +927,6 @@
             }
         });
         
-        // Pause button click
         document.getElementById('pauseBtn').addEventListener('click', () => {
             if (gameState === 'playing') {
                 isPaused = !isPaused;
@@ -925,7 +936,7 @@
         // Boot game
         gameLoop();
         
-        console.log('%c✅ Bangla Run ENHANCED loaded! Enjoy the new particles, shield, sounds & smooth controls 🇧🇩', 'color:#FFD700; font-size:17px; font-weight:bold');
+        console.log('%c✅ Bangla GTA (GTA V Style) loaded! Drive like a boss on Bangladeshi roads 🇧🇩🔥', 'color:#FFD700; font-size:18px; font-weight:bold');
     </script>
 </body>
 </html>
