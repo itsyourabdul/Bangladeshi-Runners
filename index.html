@@ -141,20 +141,22 @@
 
     <canvas id="canvas" width="820" height="480"></canvas>
 
-    <!-- GTA V style UI -->
+    <!-- GTA V style UI (NEW: Nitro indicator added) -->
     <div class="ui" id="ui">
         দূরত্ব: <span id="score">0</span>m 
         <span style="margin-left:20px; color:#FFD700;">💰</span> 
         <span id="mangoCount">0</span>
         <span id="shieldIndicator" style="margin-left:15px; font-size:1.4rem; display:none;">🛡️</span>
+        <span id="nitroIndicator" style="margin-left:12px; font-size:1.4rem; display:none;">🔥</span>
     </div>
 
-    <!-- GTA V style instructions -->
+    <!-- GTA V style instructions (NEW features added) -->
     <div class="instructions" id="instructions">
         ← → বা A D → লেন চেঞ্জ<br>
         ↑ বা W বা SPACE → র‍্যাম্প জাম্প / বুস্ট<br>
         ↓ বা S → ড্রিফট / স্লাইড<br>
-        💰 টাকা + 🛡️ শিল্ড সংগ্রহ করুন!<br>
+        💰 টাকা + 🛡️ শিল্ড + 🔥 NITRO সংগ্রহ করুন!<br>
+        H → হর্ন বাজান (GTA style)<br>
         P → পজ করুন • ট্যাপ করে শুরু/রিস্টার্ট<br>
         <span style="font-size:0.9rem; opacity:0.8;">মোবাইলে সোয়াইপ • GTA V এর মতো বাংলাদেশের গ্রাম রাস্তায় গাড়ি চালান!</span>
     </div>
@@ -164,22 +166,18 @@
 
     <script>
         /**
-         * Bangla GTA - FULL GTA V STYLE EDITION
+         * Bangla GTA - FULL GTA V STYLE EDITION (UPGRADED 2026)
          * 
-         * TRANSFORMED INTO GTA V PLAYSTYLE:
-         * ✅ Player is now a red sports car (GTA V vibe)
-         * ✅ Jump = ramp jump / nitro boost
-         * ✅ Slide = handbrake drift
-         * ✅ Smooth lane changes (like GTA driving)
-         * ✅ Particle system upgraded (exhaust smoke + crash explosions)
-         * ✅ Sound effects now include engine rev, horn, crash
-         * ✅ Shield = bulletproof armor (temporary invincibility)
-         * ✅ Collectibles = cash (💰) instead of just mangoes
-         * ✅ Background still Bangladeshi village road but now feels like GTA countryside mission
-         * ✅ Start/Game Over screens with GTA "WASTED" flair
-         * ✅ Fully playable like an endless GTA V driving mission!
+         * NEW FEATURES ADDED:
+         * ✅ NITRO BOOST 🔥 - Rare collectible (orange flame) gives 4-second super speed + flaming exhaust!
+         * ✅ HORN - Press H to honk like a real Bangladeshi driver (GTA V radio energy)
+         * ✅ New obstacles: Tractor & Bicycle (more village chaos)
+         * ✅ Nitro UI indicator (pulsing 🔥 next to shield)
+         * ✅ Enhanced flame particles & drift visuals
+         * ✅ Better spawn balance & moveSpeed system for boost
+         * ✅ Updated start screen, instructions & comments
          * 
-         * Just copy & play — pure GTA V energy in Bangla village roads 🇧🇩
+         * Still 100% playable in one HTML file — pure GTA V countryside mission in Bangladesh 🇧🇩🔥
          */
 
         const canvas = document.getElementById('canvas');
@@ -190,7 +188,7 @@
         
         let gameState = 'start'; // start, playing, over
         let score = 0;
-        let cash = 0;                    // Changed from mangoes to cash for GTA feel
+        let cash = 0;
         let highScore = localStorage.getItem('banglaGTAHS') ? parseInt(localStorage.getItem('banglaGTAHS')) : 0;
         let speed = 6;
         let frame = 0;
@@ -203,7 +201,8 @@
         let playerVel = 0;
         let isSliding = false;
         let slideTimer = 0;
-        let playerShield = 0;           // Bulletproof armor
+        let playerShield = 0;
+        let nitroActive = 0;           // NEW: Nitro boost timer
         let cashStreak = 0;
         let lastCashFrame = 0;
         
@@ -248,7 +247,7 @@
         }
 
         function playJumpSound() {
-            playSound(280, 0.12, 'triangle', 0.8);     // ramp jump
+            playSound(280, 0.12, 'triangle', 0.8);
             setTimeout(() => playSound(520, 0.25, 'sine', 0.6), 40);
         }
 
@@ -272,6 +271,13 @@
             playSound(90, 0.35, 'sawtooth', 0.4);
         }
 
+        // NEW: GTA-style horn sound
+        function playHornSound() {
+            playSound(420, 0.12, 'sine', 1.0);
+            setTimeout(() => playSound(360, 0.28, 'sine', 0.85), 70);
+            setTimeout(() => playSound(480, 0.18, 'sine', 0.9), 160);
+        }
+
         // ====================== PARTICLES (GTA V crash + exhaust) ======================
         function createExhaustParticles(x, y) {
             for (let i = 0; i < 12; i++) {
@@ -287,7 +293,7 @@
             }
         }
 
-        function createMangoParticles(x, y) {  // renamed but kept for cash sparkle
+        function createMangoParticles(x, y) {
             for (let i = 0; i < 28; i++) {
                 particles.push({
                     x: x,
@@ -313,6 +319,21 @@
                     life: 28 + Math.random() * 22,
                     size: 5 + Math.random() * 9,
                     color: color
+                });
+            }
+        }
+
+        // NEW: Nitro flame trail (orange-red fire)
+        function createNitroFlames(x, y) {
+            for (let i = 0; i < 22; i++) {
+                particles.push({
+                    x: x - 42,
+                    y: y + 18,
+                    vx: (Math.random() - 1.5) * 6 - 2,
+                    vy: Math.random() * 5 + 2,
+                    life: 14 + Math.random() * 8,
+                    size: 5 + Math.random() * 6,
+                    color: Math.random() > 0.5 ? '#FFAA00' : '#FF4400'
                 });
             }
         }
@@ -357,6 +378,7 @@
             isSliding = false;
             slideTimer = 0;
             playerShield = 0;
+            nitroActive = 0;           // NEW reset
             cashStreak = 0;
             lastCashFrame = 0;
             obstacles = [];
@@ -370,7 +392,8 @@
 
         function spawnObstacle() {
             const lane = Math.floor(Math.random() * 3);
-            const types = ['cow', 'rickshaw', 'branch', 'police']; // Added police car for GTA feel
+            // NEW obstacles added
+            const types = ['cow', 'rickshaw', 'branch', 'police', 'tractor', 'bicycle'];
             const type = types[Math.floor(Math.random() * types.length)];
             
             obstacles.push({
@@ -382,12 +405,16 @@
         
         function spawnCollectible() {
             const lane = Math.floor(Math.random() * 3);
-            const isShield = Math.random() < 0.18;
+            const rand = Math.random();
+            let type;
+            if (rand < 0.68) type = 'cash';
+            else if (rand < 0.92) type = 'shield';
+            else type = 'nitro';   // NEW: rare nitro (~8% chance)
             
             collectibles.push({
                 lane: lane,
                 y: -80,
-                type: isShield ? 'shield' : 'cash'
+                type: type
             });
         }
 
@@ -398,6 +425,16 @@
             score = Math.floor(frame * 0.45 + cash * 18);
             
             if (frame % 55 === 0 && speed < 15) speed += 0.4;
+            
+            // NEW: Nitro countdown
+            if (nitroActive > 0) nitroActive--;
+            
+            // NEW: Dynamic move speed (nitro makes everything come faster)
+            let moveSpeed = speed;
+            if (nitroActive > 0) moveSpeed += 8.5;
+            
+            // Update background parallax with boost
+            bgOffset = (bgOffset + moveSpeed * 0.68) % 920;
             
             // Controls (GTA driving feel)
             if ((keys['ArrowLeft'] || keys['a'] || keys['A']) && frame % 3 === 0) {
@@ -418,6 +455,12 @@
                 slideTimer = 24;
                 playDriftSound();
                 keys['ArrowDown'] = keys['s'] = keys['S'] = false;
+            }
+            
+            // NEW: Horn (one-time press)
+            if (keys['h'] || keys['H']) {
+                playHornSound();
+                keys['h'] = keys['H'] = false;
             }
             
             // Smooth lane movement
@@ -441,17 +484,17 @@
             
             if (playerShield > 0) playerShield--;
             
-            // Spawn
+            // Spawn (same rate, more chaos with new obstacles)
             if (Math.random() < 0.052 + speed * 0.004) spawnObstacle();
             if (Math.random() < 0.033) spawnCollectible();
             
-            // Move objects
+            // Move objects using boosted speed
             for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].y += speed;
+                obstacles[i].y += moveSpeed;
                 if (obstacles[i].y > 520) obstacles.splice(i, 1);
             }
             for (let i = collectibles.length - 1; i >= 0; i--) {
-                collectibles[i].y += speed;
+                collectibles[i].y += moveSpeed;
                 if (collectibles[i].y > 520) collectibles.splice(i, 1);
             }
             
@@ -509,6 +552,14 @@
                         playerShield = 280;
                         createMangoParticles(laneX[c.lane], screenY);
                         playPowerupSound();
+                    } 
+                    // NEW: Nitro boost
+                    else if (c.type === 'nitro') {
+                        nitroActive = 240; // ~4 seconds of pure speed
+                        createMangoParticles(laneX[c.lane], screenY);
+                        createNitroFlames(laneX[c.lane], screenY + 20);
+                        playPowerupSound();
+                        setTimeout(() => playSound(680, 0.3, 'sawtooth', 0.6), 50);
                     }
                     collectibles.splice(i, 1);
                 }
@@ -516,7 +567,7 @@
             
             if (frame - lastCashFrame > 50) cashStreak = 0;
             
-            // UI
+            // UI updates
             document.getElementById('score').textContent = Math.floor(score);
             document.getElementById('mangoCount').textContent = cash;
             
@@ -528,8 +579,20 @@
                 shieldEl.style.display = 'none';
             }
             
-            // Occasional engine sound
+            // NEW: Nitro UI indicator
+            const nitroEl = document.getElementById('nitroIndicator');
+            if (nitroActive > 0) {
+                nitroEl.style.display = 'inline';
+                nitroEl.style.opacity = (0.7 + Math.sin(frame / 2.5) * 0.3).toString();
+            } else {
+                nitroEl.style.display = 'none';
+            }
+            
+            // Occasional engine sound + NEW nitro flames
             if (frame % 18 === 0) playEngineRev();
+            if (nitroActive > 0 && frame % 2 === 0) {
+                createNitroFlames(playerX, 315 + playerJump);
+            }
         }
 
         function drawBackground() {
@@ -549,7 +612,7 @@
             ctx.fill();
             ctx.shadowBlur = 0;
             
-            // Paddy fields (GTA countryside vibe)
+            // Paddy fields
             ctx.fillStyle = '#006400';
             ctx.beginPath();
             ctx.moveTo(0, 260);
@@ -583,8 +646,7 @@
             ctx.stroke();
             ctx.setLineDash([]);
             
-            // Palm trees (parallax)
-            bgOffset = (bgOffset + speed * 0.68) % 920;
+            // Palm trees (parallax) - bgOffset now updated in update()
             ctx.fillStyle = '#8B4513';
             for (let i = 0; i < 5; i++) {
                 const x = ((i * 195) + bgOffset) % 1100 - 140;
@@ -616,8 +678,7 @@
             const x = playerX;
             let baseY = 315 + playerJump;
             
-            // GTA V style sports car
-            if (isSliding) baseY += 12; // lower car for drift feel
+            if (isSliding) baseY += 12;
             
             // Main car body
             ctx.fillStyle = '#FF4500';
@@ -658,14 +719,26 @@
             ctx.arc(x + 26, baseY - 8, 6.5, 0, Math.PI * 2);
             ctx.fill();
             
-            // Drift smoke when sliding
+            // Drift smoke
             if (isSliding) {
                 ctx.fillStyle = 'rgba(220,220,220,0.65)';
                 ctx.fillRect(x - 45, baseY - 5, 18, 8);
                 ctx.fillRect(x + 27, baseY - 5, 18, 8);
+                
+                // NEW: Tire marks during drift
+                ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+                ctx.lineWidth = 7;
+                ctx.beginPath();
+                ctx.moveTo(x - 48, baseY + 8);
+                ctx.quadraticCurveTo(x - 68, baseY + 32, x - 75, baseY + 52);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x + 40, baseY + 8);
+                ctx.quadraticCurveTo(x + 68, baseY + 32, x + 75, baseY + 52);
+                ctx.stroke();
             }
             
-            // Bulletproof shield effect
+            // Bulletproof shield
             if (playerShield > 0) {
                 ctx.save();
                 ctx.shadowBlur = 28;
@@ -722,7 +795,7 @@
                     ctx.fillRect(x - size * 1.5, sy - 34, size * 0.9, 24);
                     ctx.fillRect(x + size * 0.6, sy - 34, size * 0.9, 24);
                 }
-                else if (o.type === 'police') {  // GTA police car
+                else if (o.type === 'police') {
                     ctx.fillStyle = '#222';
                     ctx.fillRect(x - size * 1.05, sy - size * 0.55, size * 2.1, size * 0.75);
                     ctx.fillStyle = '#0044FF';
@@ -736,6 +809,47 @@
                     ctx.beginPath();
                     ctx.arc(x + size * 0.65, sy + size * 0.35, size * 0.4, 0, Math.PI * 2);
                     ctx.fill();
+                }
+                // NEW: Tractor
+                else if (o.type === 'tractor') {
+                    ctx.fillStyle = '#006400';
+                    ctx.fillRect(x - size * 1.25, sy - size * 0.7, size * 2.5, size * 1.05);
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(x - size * 1.35, sy - size * 1.05, size * 2.7, 26);
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillRect(x + size * 0.4, sy - size * 0.9, 18, size * 0.4);
+                    ctx.fillStyle = '#222222';
+                    ctx.beginPath();
+                    ctx.arc(x - size * 0.85, sy + size * 0.45, size * 0.48, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x + size * 0.85, sy + size * 0.45, size * 0.48, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#666';
+                    ctx.beginPath();
+                    ctx.arc(x - size * 0.85, sy + size * 0.45, size * 0.22, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x + size * 0.85, sy + size * 0.45, size * 0.22, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                // NEW: Bicycle
+                else if (o.type === 'bicycle') {
+                    ctx.fillStyle = '#FF2222';
+                    ctx.fillRect(x - size * 0.8, sy - size * 0.4, size * 1.6, size * 0.25);
+                    ctx.fillStyle = '#111';
+                    ctx.beginPath();
+                    ctx.arc(x - size * 0.55, sy + size * 0.15, size * 0.32, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x + size * 0.55, sy + size * 0.15, size * 0.32, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#111';
+                    ctx.lineWidth = 5;
+                    ctx.beginPath();
+                    ctx.moveTo(x + size * 0.4, sy - size * 0.3);
+                    ctx.lineTo(x + size * 0.7, sy - size * 0.55);
+                    ctx.stroke();
                 }
             }
             
@@ -765,6 +879,15 @@
                     ctx.fillText('🛡️', x - size * 0.85, sy + size * 0.7);
                     ctx.shadowBlur = 0;
                 }
+                // NEW: Nitro collectible
+                else if (c.type === 'nitro') {
+                    ctx.shadowBlur = 24;
+                    ctx.shadowColor = '#FFAA00';
+                    ctx.font = `${size * 1.6}px Arial`;
+                    ctx.fillStyle = '#FF5500';
+                    ctx.fillText('🔥', x - size * 0.7, sy + size * 0.65);
+                    ctx.shadowBlur = 0;
+                }
             }
         }
 
@@ -788,7 +911,7 @@
                 }
             }
             
-            // Start screen - GTA style
+            // Start screen
             if (gameState === 'start') {
                 ctx.fillStyle = 'rgba(0, 60, 0, 0.92)';
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -807,15 +930,15 @@
                 ctx.fillText('ট্যাপ বা SPACE চাপুন শুরু করতে', WIDTH / 2, 290);
                 
                 ctx.font = '21px Inter';
-                ctx.fillText('রিকশা • গরু • পুলিশ • ড্রিফট • র‍্যাম্প', WIDTH / 2, 335);
-                ctx.fillText('GTA V এর মতো গাড়ি চালান • শিল্ড • ক্যাশ', WIDTH / 2, 365);
+                ctx.fillText('রিকশা • গরু • পুলিশ • ট্রাক্টর • সাইকেল • ড্রিফট • NITRO', WIDTH / 2, 335);
+                ctx.fillText('GTA V এর মতো গাড়ি চালান • শিল্ড • ক্যাশ • 🔥 NITRO • HORN', WIDTH / 2, 365);
                 
                 ctx.fillStyle = '#FFD700';
                 ctx.font = '20px Inter';
                 ctx.fillText(`HIGH SCORE: ${highScore}`, WIDTH / 2, 415);
             }
             
-            // Game Over - GTA "WASTED" style
+            // Game Over - GTA "WASTED"
             if (gameState === 'over') {
                 ctx.fillStyle = 'rgba(180, 0, 0, 0.96)';
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -886,7 +1009,7 @@
             keys[e.key] = false;
         });
         
-        // Mobile swipe (GTA driving feel)
+        // Mobile swipe
         canvas.addEventListener('touchstart', e => {
             if (gameState !== 'playing' || isPaused) return;
             touchStartX = e.changedTouches[0].screenX;
@@ -936,7 +1059,7 @@
         // Boot game
         gameLoop();
         
-        console.log('%c✅ Bangla GTA (GTA V Style) loaded! Drive like a boss on Bangladeshi roads 🇧🇩🔥', 'color:#FFD700; font-size:18px; font-weight:bold');
+        console.log('%c✅ Bangla GTA (GTA V Style) upgraded with NITRO 🔥 + HORN + new obstacles! Drive safe on Bangladeshi roads 🇧🇩🔥', 'color:#FFD700; font-size:18px; font-weight:bold');
     </script>
 </body>
 </html>
